@@ -185,11 +185,9 @@ struct QuestPanelView: View {
                 // Save AI-generated quest to Firebase
                 if quest.aiGenerated {
                     try? await FirebaseService.shared.saveQuest(quest)
-                    print("✅ AI quest saved to Firebase: \(quest.title)")
                 }
-            } catch {
-                print("Failed to generate quest: \(error)")
-            }
+                } catch {
+                }
         }
     }
 }
@@ -309,7 +307,6 @@ struct QuestCardView: View {
         Task {
             try? await FirebaseService.shared.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
             try? await FirebaseService.shared.saveQuest(quest)
-            LocalStorageService.shared.saveQuests(gameState.quests)
         }
     }
 }
@@ -436,7 +433,6 @@ struct HatCardView: View {
                     gameState.equippedHat = hat
                     Task {
                         try? await FirebaseService.shared.saveGameState(gameState)
-                        LocalStorageService.shared.saveEquippedHat(hat.id)
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -468,7 +464,6 @@ struct HatCardView: View {
             gameState.inventory.hatsUnlocked.append(hat.id)
             Task {
                 try? await FirebaseService.shared.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
-                LocalStorageService.shared.saveInventory(gameState.inventory)
             }
         }
     }

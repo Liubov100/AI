@@ -44,7 +44,6 @@ class FirebaseService: ObservableObject {
         model = vertex?.generativeModel(modelName: "gemini-1.5-pro")
         isAIAvailable = true
         #else
-        print("⚠️ FirebaseVertexAI not available. Using fallback quest generation.")
         isAIAvailable = false
         #endif
     }
@@ -53,14 +52,11 @@ class FirebaseService: ObservableObject {
     func authenticateAnonymously() {
         auth.signInAnonymously { [weak self] result, error in
             if let error = error {
-                print("⚠️ Firebase Authentication unavailable: \(error.localizedDescription)")
-                print("ℹ️ Game will run in offline mode. Cloud save/load disabled.")
                 return
             }
             DispatchQueue.main.async {
                 self?.isAuthenticated = true
                 self?.currentUserId = result?.user.uid
-                print("✅ Authenticated with Firebase. Cloud features enabled.")
             }
         }
     }
@@ -84,12 +80,7 @@ class FirebaseService: ObservableObject {
 
     // Overload for just stats and inventory
     func saveGameState(stats: PlayerStats, inventory: Inventory) async throws {
-        // Always save locally first
-        LocalStorageService.shared.savePlayerStats(stats)
-        LocalStorageService.shared.saveInventory(inventory)
-
         guard let userId = currentUserId else {
-            print("ℹ️ Offline mode: Saved to local storage only")
             return // Don't throw error, just save locally
         }
 
@@ -99,12 +90,7 @@ class FirebaseService: ObservableObject {
             "lastUpdated": FieldValue.serverTimestamp()
         ]
 
-        do {
-            try await db.collection("gameStates").document(userId).setData(data, merge: true)
-            print("☁️ Synced to Firebase")
-        } catch {
-            print("⚠️ Firebase sync failed: \(error.localizedDescription). Data saved locally.")
-        }
+        try await db.collection("gameStates").document(userId).setData(data, merge: true)
     }
 
     // MARK: - Load Game State

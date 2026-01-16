@@ -34,10 +34,8 @@ class GameState: ObservableObject {
         case .hat:
             playerStats.gainXP(amount: 50)
         }
-        // Persist changes locally and to Firebase (async)
+        // Persist changes to Firebase (async)
         Task {
-            LocalStorageService.shared.saveInventory(inventory)
-            LocalStorageService.shared.savePlayerStats(playerStats)
             try? await FirebaseService.shared.saveGameState(stats: playerStats, inventory: inventory)
         }
     }
@@ -60,11 +58,8 @@ class GameState: ObservableObject {
             let xpReward = 50 + (quest.objectives.count * 25)
             playerStats.gainXP(amount: xpReward)
             playerStats.addCurrency(shillings: 100 + (quest.objectives.count * 50))
-            // Persist changes locally and to Firebase (async)
+            // Persist changes to Firebase (async)
             Task {
-                LocalStorageService.shared.saveInventory(inventory)
-                LocalStorageService.shared.savePlayerStats(playerStats)
-                LocalStorageService.shared.saveQuests(quests)
                 try? await FirebaseService.shared.saveGameState(stats: playerStats, inventory: inventory)
                 try? await FirebaseService.shared.saveQuest(quests[index])
             }
