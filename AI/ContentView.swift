@@ -101,7 +101,7 @@ struct BlackCat: View {
 
                 // Inner ear (lighter for depth)
                 Triangle()
-                    .fill(Color.gray.opacity(0.4))
+                    .fill(Color.pink.opacity(0.6))
                     .frame(width: 25, height: 30)
                     .offset(y: 5)
             }
@@ -116,7 +116,7 @@ struct BlackCat: View {
 
                 // Inner ear (lighter for depth)
                 Triangle()
-                    .fill(Color.gray.opacity(0.4))
+                    .fill(Color.pink.opacity(0.6))
                     .frame(width: 25, height: 30)
                     .offset(y: 5)
             }
@@ -211,7 +211,7 @@ struct BlackCat: View {
                 Triangle()
                     .fill(
                         LinearGradient(
-                            colors: [Color.pink.opacity(0.8), Color.pink],
+                            colors: [Color.pink.opacity(0.6), Color.pink],
                             startPoint: .top,
                             endPoint: .bottom
                         )
