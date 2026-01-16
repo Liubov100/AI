@@ -70,7 +70,9 @@ struct SettingsView: View {
                                         .textFieldStyle(.roundedBorder)
                                         .frame(width: 200)
                                         .onChange(of: settings.catName) { oldValue, newValue in
-                                            gameState.playerStats.catName = newValue
+                                            DispatchQueue.main.async {
+                                                gameState.playerStats.catName = newValue
+                                            }
                                         }
                                 }
                             }
