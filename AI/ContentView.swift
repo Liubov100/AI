@@ -42,34 +42,18 @@ struct BlackCat: View {
             }
 
             // Left Ear
-            ZStack {
-                Triangle()
-                    .fill(Color.black)
-                    .frame(width: 50, height: 60)
-                    .shadow(color: .black.opacity(0.5), radius: 10, x: 5, y: 5)
-
-                // Inner ear (lighter for depth)
-                Triangle()
-                    .fill(Color.pink.opacity(0.6))
-                    .frame(width: 25, height: 30)
-                    .offset(y: 5)
-            }
-            .offset(x: -50, y: -80)
+            Triangle()
+                .fill(Color.black)
+                .frame(width: 50, height: 60)
+                .shadow(color: .black.opacity(0.5), radius: 10, x: 5, y: 5)
+                .offset(x: -50, y: -80)
 
             // Right Ear
-            ZStack {
-                Triangle()
-                    .fill(Color.black)
-                    .frame(width: 50, height: 60)
-                    .shadow(color: .black.opacity(0.5), radius: 10, x: 5, y: 5)
-
-                // Inner ear (lighter for depth)
-                Triangle()
-                    .fill(Color.pink.opacity(0.6))
-                    .frame(width: 25, height: 30)
-                    .offset(y: 5)
-            }
-            .offset(x: 50, y: -80)
+            Triangle()
+                .fill(Color.black)
+                .frame(width: 50, height: 60)
+                .shadow(color: .black.opacity(0.5), radius: 10, x: 5, y: 5)
+                .offset(x: 50, y: -80)
 
             // Head
             ZStack {

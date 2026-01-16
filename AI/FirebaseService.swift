@@ -9,18 +9,27 @@ import Foundation
 import FirebaseCore
 import FirebaseFirestore
 import FirebaseAuth
+import Combine
+// Note: FirebaseVertexAI is optional for AI quest generation
+// If not available, the app will use fallback quest generation
+#if canImport(FirebaseVertexAI)
 import FirebaseVertexAI
+#endif
 
 class FirebaseService: ObservableObject {
     static let shared = FirebaseService()
 
     private let db = Firestore.firestore()
     private let auth = Auth.auth()
+
+    #if canImport(FirebaseVertexAI)
     private var vertex: VertexAI?
     private var model: GenerativeModel?
+    #endif
 
     @Published var isAuthenticated = false
     @Published var currentUserId: String?
+    @Published var isAIAvailable = false
 
     private init() {
         setupVertex()
@@ -29,21 +38,30 @@ class FirebaseService: ObservableObject {
 
     // MARK: - Setup
     private func setupVertex() {
+        #if canImport(FirebaseVertexAI)
         vertex = VertexAI.vertexAI()
         // Using Gemini 1.5 Pro for better quality quest generation
         model = vertex?.generativeModel(modelName: "gemini-1.5-pro")
+        isAIAvailable = true
+        #else
+        print("⚠️ FirebaseVertexAI not available. Using fallback quest generation.")
+        isAIAvailable = false
+        #endif
     }
 
     // MARK: - Authentication
     func authenticateAnonymously() {
         auth.signInAnonymously { [weak self] result, error in
             if let error = error {
-                print("Authentication error: \(error.localizedDescription)")
+                print("⚠️ Firebase Authentication unavailable: \(error.localizedDescription)")
+                print("ℹ️ Game will run in offline mode. Cloud save/load disabled.")
                 return
             }
-            self?.isAuthenticated = true
-            self?.currentUserId = result?.user.uid
-            print("Authenticated with user ID: \(result?.user.uid ?? "unknown")")
+            DispatchQueue.main.async {
+                self?.isAuthenticated = true
+                self?.currentUserId = result?.user.uid
+                print("✅ Authenticated with Firebase. Cloud features enabled.")
+            }
         }
     }
 
@@ -120,19 +138,88 @@ class FirebaseService: ObservableObject {
 // MARK: - AI Quest Generation
 extension FirebaseService {
     func generateQuest(context: QuestGenerationContext) async throws -> Quest {
-        guard let model = model else {
-            throw FirebaseError.aiNotInitialized
+        #if canImport(FirebaseVertexAI)
+        if isAIAvailable, let vertexModel = model {
+            let prompt = buildQuestPrompt(context: context)
+
+            do {
+                let response = try await vertexModel.generateContent(prompt)
+
+                guard let text = response.text else {
+                    throw FirebaseError.invalidAIResponse
+                }
+
+                return try parseQuestFromAI(text: text, context: context)
+            } catch {
+                print("⚠️ AI generation failed: \(error). Using fallback.")
+                return generateFallbackQuest(context: context)
+            }
         }
+        #endif
 
-        let prompt = buildQuestPrompt(context: context)
+        // Fallback: Generate quest without AI
+        return generateFallbackQuest(context: context)
+    }
 
-        let response = try await model.generateContent(prompt)
+    private func generateFallbackQuest(context: QuestGenerationContext) -> Quest {
+        let templates = [
+            QuestTemplate(
+                title: "City Explorer",
+                description: "The city is full of shiny treasures! Collect some shinies to add to your collection.",
+                objective: .collectShinies,
+                amount: 5 + context.completedQuests,
+                reward: QuestReward(shinies: 10, feathers: 1, unlockHat: nil)
+            ),
+            QuestTemplate(
+                title: "Bird Watcher",
+                description: "Those pesky birds keep chirping. Show them who's boss by chasing them around!",
+                objective: .chaseBirds,
+                amount: 3,
+                reward: QuestReward(shinies: 8, feathers: 3, unlockHat: nil)
+            ),
+            QuestTemplate(
+                title: "Mischief Maker",
+                description: "Time to cause some chaos! Knock over items to assert your cat dominance.",
+                objective: .knockOverItems,
+                amount: 5,
+                reward: QuestReward(shinies: 12, feathers: 2, unlockHat: nil)
+            ),
+            QuestTemplate(
+                title: "Feather Collector",
+                description: "Feathers are essential for getting around. Chase some birds and collect their feathers!",
+                objective: .collectFeathers,
+                amount: 3,
+                reward: QuestReward(shinies: 15, feathers: 0, unlockHat: nil)
+            ),
+            QuestTemplate(
+                title: "Hungry Kitty",
+                description: "You're feeling peckish. Find some delicious fish to snack on!",
+                objective: .collectFish,
+                amount: 1,
+                reward: QuestReward(shinies: 20, feathers: 5, unlockHat: nil)
+            )
+        ]
 
-        guard let text = response.text else {
-            throw FirebaseError.invalidAIResponse
-        }
+        let template = templates.randomElement()!
 
-        return try parseQuestFromAI(text: text, context: context)
+        return Quest(
+            id: UUID().uuidString,
+            title: template.title,
+            description: template.description,
+            objectives: [QuestObjective(type: template.objective, targetAmount: template.amount, currentProgress: 0)],
+            reward: template.reward,
+            status: .available,
+            npcName: ["Friendly Crow", "Wise Pigeon", "Chatty Squirrel"].randomElement(),
+            aiGenerated: false
+        )
+    }
+
+    struct QuestTemplate {
+        let title: String
+        let description: String
+        let objective: QuestObjectiveType
+        let amount: Int
+        let reward: QuestReward
     }
 
     private func buildQuestPrompt(context: QuestGenerationContext) -> String {

@@ -18,10 +18,17 @@ class CatController: ObservableObject {
     @Published var facingDirection: Direction = .right
 
     private var velocity = CGPoint.zero
+    private var verticalVelocity: CGFloat = 0
+    private var isJumping = false
+    private var groundLevel: CGFloat = 0
+
     private let walkSpeed: CGFloat = 5
     private let runSpeed: CGFloat = 10
-    private let jumpHeight: CGFloat = 50
+    private let jumpForce: CGFloat = -20
+    private let gravity: CGFloat = 1.2
     private let climbSpeed: CGFloat = 3
+
+    private var jumpTimer: Timer?
 
     enum Direction {
         case left, right, up, down
@@ -58,11 +65,35 @@ class CatController: ObservableObject {
     }
 
     func jump() {
-        position.y -= jumpHeight
-        currentAction = .jumping
+        guard !isJumping else { return }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.currentAction = .idle
+        isJumping = true
+        currentAction = .jumping
+        verticalVelocity = jumpForce
+        groundLevel = position.y
+
+        // Start jump physics
+        jumpTimer?.invalidate()
+        jumpTimer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { [weak self] timer in
+            guard let self = self else {
+                timer.invalidate()
+                return
+            }
+
+            // Apply gravity
+            self.verticalVelocity += self.gravity
+
+            // Update position
+            self.position.y += self.verticalVelocity
+
+            // Check if landed
+            if self.position.y >= self.groundLevel {
+                self.position.y = self.groundLevel
+                self.verticalVelocity = 0
+                self.isJumping = false
+                self.currentAction = .idle
+                timer.invalidate()
+            }
         }
     }
 

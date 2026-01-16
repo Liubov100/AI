@@ -222,7 +222,10 @@ struct GameView: View {
             break
         }
 
-        checkCollectables()
+        // Defer state changes to avoid publishing during view updates
+        DispatchQueue.main.async {
+            self.checkCollectables()
+        }
     }
 
     func handleSpecialKeyPress(_ key: KeyEquivalent) {
@@ -241,7 +244,10 @@ struct GameView: View {
             break
         }
 
-        checkCollectables()
+        // Defer state changes to avoid publishing during view updates
+        DispatchQueue.main.async {
+            self.checkCollectables()
+        }
     }
 
     // MARK: - Game Logic
