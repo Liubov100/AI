@@ -11,6 +11,8 @@ import SceneKit
 struct GameView: View {
     @StateObject private var gameState = GameState()
     @StateObject private var catController = CatController()
+    @StateObject private var cameraController = CameraController()
+    @StateObject private var networkManager = NetworkManager.shared
     @StateObject private var firebaseService = FirebaseService.shared
     @StateObject private var tutorialManager = TutorialManager()
 
@@ -18,6 +20,7 @@ struct GameView: View {
     @State private var showInventory = false
     @State private var showHatCustomization = false
     @State private var showSettings = false
+    @State private var use3DCamera = false
     @State private var collectables: [Collectable] = []
     @State private var npcs: [NPC] = []
     @State private var interactiveObjects: [InteractiveObject] = []
@@ -33,40 +36,15 @@ struct GameView: View {
 
     var body: some View {
         ZStack {
-            // Background
-            Color(red: 0.8, green: 0.9, blue: 1.0)
-                .ignoresSafeArea()
-
-            // 3D Scene (SceneKit)
-            SceneKitView(
+            // Full 3D Scene with camera system and network players
+            Scene3DView(
+                cameraController: cameraController,
+                catController: catController,
+                networkManager: networkManager,
                 collectables: $collectables,
-                npcs: $npcs,
-                interactiveObjects: $interactiveObjects,
-                catPosition: Binding(get: { catController.position }, set: { catController.position = $0 })
+                interactiveObjects: $interactiveObjects
             )
-
-            // City Environment (2D fallback/overlay)
-            CityEnvironmentView(collectables: $collectables, objects: $interactiveObjects)
-
-            // NPCs
-            ForEach(npcs) { npc in
-                NPCView(npc: npc)
-                    .offset(x: npc.position.x, y: npc.position.y)
-            }
-
-            // Collectables
-            ForEach(collectables.filter { !$0.isCollected }) { collectable in
-                CollectableView(collectable: collectable)
-                    .offset(x: collectable.position.x, y: collectable.position.y)
-            }
-
-            // Player Cat
-            BlackCat()
-                .scaleEffect(catController.facingDirection == .left ? CGSize(width: -0.5, height: 0.5) : CGSize(width: 0.5, height: 0.5))
-                .offset(x: catController.position.x, y: catController.position.y)
-                .overlay(
-                    catController.currentAction == .hiding ? Color.clear : nil
-                )
+            .ignoresSafeArea()
 
             // UI Overlays
             VStack {
@@ -82,35 +60,40 @@ struct GameView: View {
                         StatsPanel(gameState: gameState)
                     }
                     Spacer()
-                    HStack(spacing: 15) {
-                        Button(action: { showInventory.toggle() }) {
-                            Image(systemName: "backpack")
-                                .font(.title2)
-                                .padding(10)
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(10)
+                    VStack(alignment: .trailing, spacing: 10) {
+                        HStack(spacing: 15) {
+                            Button(action: { showInventory.toggle() }) {
+                                Image(systemName: "backpack")
+                                    .font(.title2)
+                                    .padding(10)
+                                    .background(Color.white.opacity(0.8))
+                                    .cornerRadius(10)
+                            }
+                            Button(action: { showQuestPanel.toggle() }) {
+                                Image(systemName: "list.bullet.clipboard")
+                                    .font(.title2)
+                                    .padding(10)
+                                    .background(Color.white.opacity(0.8))
+                                    .cornerRadius(10)
+                            }
+                            Button(action: { showHatCustomization.toggle() }) {
+                                Image(systemName: "crown")
+                                    .font(.title2)
+                                    .padding(10)
+                                    .background(Color.white.opacity(0.8))
+                                    .cornerRadius(10)
+                            }
+                            Button(action: { showSettings.toggle() }) {
+                                Image(systemName: "gearshape.fill")
+                                    .font(.title2)
+                                    .padding(10)
+                                    .background(Color.white.opacity(0.8))
+                                    .cornerRadius(10)
+                            }
                         }
-                        Button(action: { showQuestPanel.toggle() }) {
-                            Image(systemName: "list.bullet.clipboard")
-                                .font(.title2)
-                                .padding(10)
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(10)
-                        }
-                        Button(action: { showHatCustomization.toggle() }) {
-                            Image(systemName: "crown")
-                                .font(.title2)
-                                .padding(10)
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(10)
-                        }
-                        Button(action: { showSettings.toggle() }) {
-                            Image(systemName: "gearshape.fill")
-                                .font(.title2)
-                                .padding(10)
-                                .background(Color.white.opacity(0.8))
-                                .cornerRadius(10)
-                        }
+
+                        // Camera Mode Picker (always shown now)
+                        CameraModePickerView(cameraController: cameraController)
                     }
                 }
                 .padding()
@@ -311,15 +294,19 @@ struct GameView: View {
         case "w":
             catController.moveUp(climbing: catController.isClimbing)
             tutorialManager.checkAction(.moveWithWASD)
+            updateCamera()
         case "s":
             catController.moveDown()
             tutorialManager.checkAction(.moveWithWASD)
+            updateCamera()
         case "a":
             catController.moveLeft(running: isShiftPressed)
             tutorialManager.checkAction(.moveWithWASD)
+            updateCamera()
         case "d":
             catController.moveRight(running: isShiftPressed)
             tutorialManager.checkAction(.moveWithWASD)
+            updateCamera()
         case "c":
             catController.toggleCrawl()
         case "e":
@@ -342,18 +329,23 @@ struct GameView: View {
         case .upArrow:
             catController.moveUp(climbing: catController.isClimbing)
             tutorialManager.checkAction(.moveWithWASD)
+            updateCamera()
         case .downArrow:
             catController.moveDown()
             tutorialManager.checkAction(.moveWithWASD)
+            updateCamera()
         case .leftArrow:
             catController.moveLeft(running: isShiftPressed)
             tutorialManager.checkAction(.moveWithWASD)
+            updateCamera()
         case .rightArrow:
             catController.moveRight(running: isShiftPressed)
             tutorialManager.checkAction(.moveWithWASD)
+            updateCamera()
         case .space:
             catController.jump()
             tutorialManager.checkAction(.pressSpace)
+            updateCamera()
         case .escape:
             showSettings.toggle()
             return // Don't check collectables when opening settings
@@ -362,6 +354,14 @@ struct GameView: View {
         }
 
         checkCollectables()
+    }
+
+    // MARK: - Camera Update
+    func updateCamera() {
+        cameraController.update(
+            targetPosition: catController.position,
+            facingDirection: catController.facingDirection
+        )
     }
 
     // MARK: - Game Logic

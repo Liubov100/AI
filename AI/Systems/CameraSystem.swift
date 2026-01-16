@@ -134,6 +134,7 @@ class CameraController: ObservableObject {
 struct Scene3DView: View {
     @ObservedObject var cameraController: CameraController
     @ObservedObject var catController: CatController
+    @ObservedObject var networkManager: NetworkManager
     @Binding var collectables: [Collectable]
     @Binding var interactiveObjects: [InteractiveObject]
 
@@ -191,7 +192,58 @@ struct Scene3DView: View {
             scene.rootNode.addChildNode(objectNode)
         }
 
+        // Add network players (AI and real players)
+        for player in networkManager.connectedPlayers {
+            let playerNode = createNetworkPlayerNode(player: player)
+            playerNode.position = SCNVector3(
+                x: CGFloat(player.position.x),
+                y: 0.5,
+                z: CGFloat(player.position.y)
+            )
+            scene.rootNode.addChildNode(playerNode)
+        }
+
         return scene
+    }
+
+    private func createNetworkPlayerNode(player: NetworkPlayer) -> SCNNode {
+        let node = SCNNode()
+        node.name = player.id
+
+        // Body (smaller than local player)
+        let body = SCNBox(width: 0.5, height: 0.35, length: 0.7, chamferRadius: 0.08)
+        body.firstMaterial?.diffuse.contents = NSColor.gray
+        let bodyNode = SCNNode(geometry: body)
+        bodyNode.position = SCNVector3(x: 0, y: 0.175, z: 0)
+        node.addChildNode(bodyNode)
+
+        // Head
+        let head = SCNSphere(radius: 0.2)
+        head.firstMaterial?.diffuse.contents = NSColor.darkGray
+        let headNode = SCNNode(geometry: head)
+        headNode.position = SCNVector3(x: 0, y: 0.4, z: 0.3)
+        node.addChildNode(headNode)
+
+        // Name tag
+        let text = SCNText(string: player.name, extrusionDepth: 0.02)
+        text.font = NSFont.systemFont(ofSize: 0.15)
+        text.firstMaterial?.diffuse.contents = NSColor.white
+        text.firstMaterial?.emission.contents = NSColor.white
+        let textNode = SCNNode(geometry: text)
+        textNode.position = SCNVector3(x: -0.2, y: 0.8, z: 0)
+        textNode.scale = SCNVector3(0.5, 0.5, 0.5)
+        node.addChildNode(textNode)
+
+        // Level badge
+        let levelText = SCNText(string: "Lv.\(player.level)", extrusionDepth: 0.01)
+        levelText.font = NSFont.boldSystemFont(ofSize: 0.12)
+        levelText.firstMaterial?.diffuse.contents = NSColor.yellow
+        let levelNode = SCNNode(geometry: levelText)
+        levelNode.position = SCNVector3(x: -0.15, y: 0.95, z: 0)
+        levelNode.scale = SCNVector3(0.4, 0.4, 0.4)
+        node.addChildNode(levelNode)
+
+        return node
     }
 
     private func createCamera() -> SCNNode {
