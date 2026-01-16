@@ -167,7 +167,6 @@ struct GameView: View {
             // Chat View
             if showChat {
                 VStack {
-                    Spacer()
                     HStack {
                         Spacer()
                         ChatView(
@@ -176,8 +175,10 @@ struct GameView: View {
                             localPlayerId: networkManager.localPlayerId,
                             localPlayerName: gameState.playerStats.catName
                         )
-                        .padding()
+                        .padding(.trailing, 20)
+                        .padding(.top, 80) // Below the top UI buttons
                     }
+                    Spacer()
                 }
                 .transition(.move(edge: .trailing).combined(with: .opacity))
                 .zIndex(999)
@@ -186,15 +187,16 @@ struct GameView: View {
             // Activity Feed
             if showActivityFeed {
                 VStack {
-                    Spacer()
                     HStack {
                         Spacer()
                         PlayerActivityFeed(
                             eventManager: eventManager,
                             isShowing: $showActivityFeed
                         )
-                        .padding()
+                        .padding(.trailing, 20)
+                        .padding(.top, 80) // Below the top UI buttons
                     }
+                    Spacer()
                 }
                 .transition(.move(edge: .trailing).combined(with: .opacity))
                 .zIndex(998)
@@ -203,7 +205,6 @@ struct GameView: View {
             // Friends List
             if showFriends {
                 VStack {
-                    Spacer()
                     HStack {
                         Spacer()
                         FriendsListView(
@@ -213,8 +214,10 @@ struct GameView: View {
                             localPlayerId: networkManager.localPlayerId,
                             localPlayerName: gameState.playerStats.catName
                         )
-                        .padding()
+                        .padding(.trailing, 20)
+                        .padding(.top, 80) // Below the top UI buttons
                     }
+                    Spacer()
                 }
                 .transition(.move(edge: .trailing).combined(with: .opacity))
                 .zIndex(997)
@@ -234,7 +237,7 @@ struct GameView: View {
             if eventManager.showNotification, let event = eventManager.currentNotification {
                 VStack {
                     PlayerNotificationToast(event: event)
-                        .padding(.top, 20)
+                        .padding(.top, 100) // Lower position to avoid UI overlap
                     Spacer()
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -255,14 +258,14 @@ struct GameView: View {
         }
         .focusable()
         .onKeyPress(characters: .alphanumerics) { keyPress in
-            // Don't capture input if chat is open
-            guard !showChat else { return .ignored }
+            // Don't capture input if chat or friends list is open
+            guard !showChat && !showFriends else { return .ignored }
             handleCharacterPress(keyPress.characters)
             return .handled
         }
         .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow, .space, .escape]) { keyPress in
-            // Don't capture input if chat is open (except Escape)
-            if showChat && keyPress.key != .escape {
+            // Don't capture input if chat or friends list is open (except Escape)
+            if (showChat || showFriends) && keyPress.key != .escape {
                 return .ignored
             }
             handleSpecialKeyPress(keyPress.key)
