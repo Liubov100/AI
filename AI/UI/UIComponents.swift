@@ -436,6 +436,7 @@ struct HatCardView: View {
                     gameState.equippedHat = hat
                     Task {
                         try? await FirebaseService.shared.saveGameState(gameState)
+                        LocalStorageService.shared.saveEquippedHat(hat.id)
                     }
                 }
                 .buttonStyle(.borderedProminent)
