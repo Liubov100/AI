@@ -13,6 +13,7 @@ struct GameView: View {
     @StateObject private var catController = CatController()
     @StateObject private var cameraController = CameraController()
     @StateObject private var networkManager = NetworkManager.shared
+    @StateObject private var chatManager = ChatManager.shared
     @StateObject private var firebaseService = FirebaseService.shared
     @StateObject private var tutorialManager = TutorialManager()
 
@@ -20,6 +21,7 @@ struct GameView: View {
     @State private var showInventory = false
     @State private var showHatCustomization = false
     @State private var showSettings = false
+    @State private var showChat = false
     @State private var use3DCamera = false
     @State private var collectables: [Collectable] = []
     @State private var npcs: [NPC] = []
@@ -90,6 +92,9 @@ struct GameView: View {
                                     .background(Color.white.opacity(0.8))
                                     .cornerRadius(10)
                             }
+
+                            // Chat Button
+                            ChatButtonView(chatManager: chatManager, showChat: $showChat)
                         }
 
                         // Camera Mode Picker (always shown now)
@@ -134,6 +139,25 @@ struct GameView: View {
                 SettingsView(isShowing: $showSettings, gameState: gameState)
                     .transition(.opacity)
                     .zIndex(1000)
+            }
+
+            // Chat View
+            if showChat {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        ChatView(
+                            chatManager: chatManager,
+                            isShowing: $showChat,
+                            localPlayerId: networkManager.localPlayerId,
+                            localPlayerName: gameState.playerStats.catName
+                        )
+                        .padding()
+                    }
+                }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+                .zIndex(999)
             }
 
             // Tutorial overlay

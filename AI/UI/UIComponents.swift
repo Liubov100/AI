@@ -548,7 +548,7 @@ struct ControlsHelpView: View {
         VStack(alignment: .leading, spacing: 5) {
             Text("WASD/Arrows: Move | Space: Jump | C: Crawl | E: Interact")
                 .font(.caption)
-            Text("Q: Quests | I: Inventory | V: Toggle 3D Camera | Shift+Move: Run")
+            Text("Q: Quests | I: Inventory | Chat: Talk with AI Players | Shift+Move: Run")
                 .font(.caption)
         }
         .padding(10)
