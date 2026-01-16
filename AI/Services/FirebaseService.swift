@@ -84,8 +84,13 @@ class FirebaseService: ObservableObject {
 
     // Overload for just stats and inventory
     func saveGameState(stats: PlayerStats, inventory: Inventory) async throws {
+        // Always save locally first
+        LocalStorageService.shared.savePlayerStats(stats)
+        LocalStorageService.shared.saveInventory(inventory)
+
         guard let userId = currentUserId else {
-            throw FirebaseError.notAuthenticated
+            print("ℹ️ Offline mode: Saved to local storage only")
+            return // Don't throw error, just save locally
         }
 
         let data: [String: Any] = [
@@ -94,7 +99,12 @@ class FirebaseService: ObservableObject {
             "lastUpdated": FieldValue.serverTimestamp()
         ]
 
-        try await db.collection("gameStates").document(userId).setData(data, merge: true)
+        do {
+            try await db.collection("gameStates").document(userId).setData(data, merge: true)
+            print("☁️ Synced to Firebase")
+        } catch {
+            print("⚠️ Firebase sync failed: \(error.localizedDescription). Data saved locally.")
+        }
     }
 
     // MARK: - Load Game State
