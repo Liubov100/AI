@@ -235,8 +235,13 @@ extension FirebaseService {
         }
         #endif
 
-        // Fallback: Generate quest without AI
-        return generateFallbackQuest(context: context)
+        // Use on-device offline AI when Firebase Vertex AI not available
+        do {
+            return try await OfflineAIService.shared.generateQuest(context: context)
+        } catch {
+            print("⚠️ Offline AI failed: \(error). Using fallback.")
+            return generateFallbackQuest(context: context)
+        }
     }
 
     private func generateFallbackQuest(context: QuestGenerationContext) -> Quest {
