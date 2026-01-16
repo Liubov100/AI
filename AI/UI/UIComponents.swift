@@ -181,6 +181,12 @@ struct QuestPanelView: View {
                 await MainActor.run {
                     gameState.quests.append(quest)
                 }
+
+                // Save AI-generated quest to Firebase
+                if quest.aiGenerated {
+                    try? await FirebaseService.shared.saveQuest(quest)
+                    print("✅ AI quest saved to Firebase: \(quest.title)")
+                }
             } catch {
                 print("Failed to generate quest: \(error)")
             }

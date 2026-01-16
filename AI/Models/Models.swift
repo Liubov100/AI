@@ -22,6 +22,18 @@ class GameState: ObservableObject {
     func collectItem(_ item: Collectable) {
         inventory.add(item)
         checkQuestProgress(for: item)
+
+        // Grant XP for collecting items
+        switch item.type {
+        case .shiny:
+            playerStats.gainXP(amount: 10)
+        case .fish:
+            playerStats.gainXP(amount: 15)
+        case .feather:
+            playerStats.gainXP(amount: 20)
+        case .hat:
+            playerStats.gainXP(amount: 50)
+        }
     }
 
     func checkQuestProgress(for item: Collectable) {
@@ -37,23 +49,83 @@ class GameState: ObservableObject {
             quests[index].status = .completed
             inventory.shinies += quest.reward.shinies
             inventory.feathers += quest.reward.feathers
+
+            // Grant XP and currency rewards for quest completion
+            let xpReward = 50 + (quest.objectives.count * 25)
+            playerStats.gainXP(amount: xpReward)
+            playerStats.addCurrency(shillings: 100 + (quest.objectives.count * 50))
         }
     }
 }
 
 // MARK: - Player Stats
 struct PlayerStats: Codable {
+    var catName: String = "Kitty"
+    var level: Int = 1
+    var currentXP: Int = 0
     var maxStamina: Int = 1
     var currentStamina: Int = 1
     var fishEaten: Int = 0
     var birdsChased: Int = 0
     var itemsKnockedOver: Int = 0
     var peopleTripped: Int = 0
+    var totalPlayTime: TimeInterval = 0
+
+    // Star Stable inspired currencies
+    var starCoins: Int = 100 // Premium currency (like Star Coins)
+    var jorvikShillings: Int = 500 // Regular currency (like Jorvik Shillings)
+
+    // XP required for next level (exponential scaling)
+    var xpToNextLevel: Int {
+        return 100 + (level - 1) * 50
+    }
+
+    // Level progress percentage (0.0 to 1.0)
+    var levelProgress: Double {
+        return Double(currentXP) / Double(xpToNextLevel)
+    }
+
+    mutating func gainXP(amount: Int) {
+        currentXP += amount
+
+        // Level up check
+        while currentXP >= xpToNextLevel {
+            currentXP -= xpToNextLevel
+            levelUp()
+        }
+    }
+
+    private mutating func levelUp() {
+        level += 1
+        maxStamina = min(10, maxStamina + 1)
+        currentStamina = maxStamina
+
+        // Level rewards
+        jorvikShillings += level * 50
+        if level % 5 == 0 {
+            starCoins += 10
+        }
+    }
 
     mutating func eatFish() {
         fishEaten += 1
-        maxStamina = min(4, fishEaten + 1)
+        maxStamina = min(10, fishEaten + 1)
         currentStamina = maxStamina
+        gainXP(amount: 5)
+    }
+
+    mutating func addCurrency(starCoins: Int = 0, shillings: Int = 0) {
+        self.starCoins += starCoins
+        self.jorvikShillings += shillings
+    }
+
+    mutating func spendCurrency(starCoins: Int = 0, shillings: Int = 0) -> Bool {
+        if self.starCoins >= starCoins && self.jorvikShillings >= shillings {
+            self.starCoins -= starCoins
+            self.jorvikShillings -= shillings
+            return true
+        }
+        return false
     }
 }
 

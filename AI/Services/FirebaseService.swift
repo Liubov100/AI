@@ -82,6 +82,21 @@ class FirebaseService: ObservableObject {
         try await db.collection("gameStates").document(userId).setData(data, merge: true)
     }
 
+    // Overload for just stats and inventory
+    func saveGameState(stats: PlayerStats, inventory: Inventory) async throws {
+        guard let userId = currentUserId else {
+            throw FirebaseError.notAuthenticated
+        }
+
+        let data: [String: Any] = [
+            "playerStats": try JSONEncoder().encode(stats).base64EncodedString(),
+            "inventory": try JSONEncoder().encode(inventory).base64EncodedString(),
+            "lastUpdated": FieldValue.serverTimestamp()
+        ]
+
+        try await db.collection("gameStates").document(userId).setData(data, merge: true)
+    }
+
     // MARK: - Load Game State
     func loadGameState() async throws -> (PlayerStats, Inventory, String)? {
         guard let userId = currentUserId else {
@@ -132,6 +147,59 @@ class FirebaseService: ObservableObject {
         }
 
         return quests
+    }
+
+    // MARK: - Save Settings
+    func saveSettings(_ settings: GameSettings) async throws {
+        guard let userId = currentUserId else {
+            throw FirebaseError.notAuthenticated
+        }
+
+        let settingsData = try JSONEncoder().encode(settings)
+        let settingsDict = try JSONSerialization.jsonObject(with: settingsData) as? [String: Any] ?? [:]
+
+        try await db.collection("users").document(userId).collection("settings").document("gameSettings").setData(settingsDict)
+    }
+
+    // MARK: - Load Settings
+    func loadSettings() async throws -> GameSettings? {
+        guard let userId = currentUserId else {
+            throw FirebaseError.notAuthenticated
+        }
+
+        let document = try await db.collection("users").document(userId).collection("settings").document("gameSettings").getDocument()
+
+        guard let data = document.data() else {
+            return nil
+        }
+
+        let jsonData = try JSONSerialization.data(withJSONObject: data)
+        return try JSONDecoder().decode(GameSettings.self, from: jsonData)
+    }
+
+    // MARK: - Save Tutorial Progress
+    func saveTutorialProgress(completed: Bool) async throws {
+        guard let userId = currentUserId else {
+            throw FirebaseError.notAuthenticated
+        }
+
+        let data: [String: Any] = [
+            "tutorialCompleted": completed,
+            "lastUpdated": FieldValue.serverTimestamp()
+        ]
+
+        try await db.collection("users").document(userId).collection("progress").document("tutorial").setData(data)
+    }
+
+    // MARK: - Load Tutorial Progress
+    func loadTutorialProgress() async throws -> Bool {
+        guard let userId = currentUserId else {
+            throw FirebaseError.notAuthenticated
+        }
+
+        let document = try await db.collection("users").document(userId).collection("progress").document("tutorial").getDocument()
+
+        return document.data()?["tutorialCompleted"] as? Bool ?? false
     }
 }
 
