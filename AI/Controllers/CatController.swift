@@ -9,6 +9,7 @@ import Foundation
 import SwiftUI
 import Combine
 
+@MainActor
 class CatController: ObservableObject {
     @Published var position = CGPoint(x: 0, y: 0)
     @Published var currentAction: CatAction = .idle
@@ -28,7 +29,7 @@ class CatController: ObservableObject {
     private let gravity: CGFloat = 1.2
     private let climbSpeed: CGFloat = 3
 
-    private var jumpTimer: Timer?
+    private var jumpTask: Task<Void, Never>?
 
     enum Direction {
         case left, right, up, down
@@ -37,129 +38,120 @@ class CatController: ObservableObject {
     // MARK: - Movement Controls
     func moveLeft(running: Bool = false) {
         let speed = running ? runSpeed : walkSpeed
-        DispatchQueue.main.async {
-            self.facingDirection = .left
-            self.position.x -= speed
-            self.currentAction = running ? .running : .walking
+        Task { @MainActor in
+            facingDirection = .left
+            position.x -= speed
+            currentAction = running ? .running : .walking
         }
     }
 
     func moveRight(running: Bool = false) {
         let speed = running ? runSpeed : walkSpeed
-        DispatchQueue.main.async {
-            self.facingDirection = .right
-            self.position.x += speed
-            self.currentAction = running ? .running : .walking
+        Task { @MainActor in
+            facingDirection = .right
+            position.x += speed
+            currentAction = running ? .running : .walking
         }
     }
 
     func moveUp(climbing: Bool = false) {
         let delta = climbing ? -climbSpeed : -walkSpeed
         let action: CatAction = climbing ? .climbing : .walking
-        DispatchQueue.main.async {
-            self.position.y += delta
-            self.currentAction = action
+        Task { @MainActor in
+            position.y += delta
+            currentAction = action
         }
     }
 
     func moveDown() {
         let delta = walkSpeed
-        DispatchQueue.main.async {
-            self.position.y += delta
-            self.currentAction = .walking
+        Task { @MainActor in
+            position.y += delta
+            currentAction = .walking
         }
     }
 
     func jump() {
         guard !isJumping else { return }
 
-        DispatchQueue.main.async {
-            self.isJumping = true
-            self.currentAction = .jumping
-            self.verticalVelocity = self.jumpForce
-            self.groundLevel = self.position.y
-        }
+        isJumping = true
+        currentAction = .jumping
+        verticalVelocity = jumpForce
+        groundLevel = position.y
 
-        // Start jump physics
-        jumpTimer?.invalidate()
-        jumpTimer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
-            }
+        // Start jump physics using an async Task to avoid publishing during view updates
+        jumpTask?.cancel()
+        jumpTask = Task { [weak self] in
+            guard let self = self else { return }
+            // Target ~60 FPS
+            let frameDuration: UInt64 = 16_666_667
+            while !Task.isCancelled {
+                // Compute physics values without touching @Published properties
+                let newVerticalVelocity = self.verticalVelocity + self.gravity
+                let tentativeY = self.position.y + newVerticalVelocity
+                let landed = tentativeY >= self.groundLevel
 
-            // Apply gravity
-            self.verticalVelocity += self.gravity
+                // Apply state mutations on the main actor, outside of view update cycles
+                await MainActor.run {
+                    if landed {
+                        self.position.y = self.groundLevel
+                        self.verticalVelocity = 0
+                        self.isJumping = false
+                        self.currentAction = .idle
+                        self.jumpTask?.cancel()
+                    } else {
+                        self.position.y = tentativeY
+                        self.verticalVelocity = newVerticalVelocity
+                    }
+                }
 
-            // Update position
-            self.position.y += self.verticalVelocity
-
-            // Check if landed
-            if self.position.y >= self.groundLevel {
-                self.position.y = self.groundLevel
-                self.verticalVelocity = 0
-                self.isJumping = false
-                self.currentAction = .idle
-                timer.invalidate()
+                if landed { break }
+                try? await Task.sleep(nanoseconds: frameDuration)
             }
         }
     }
 
     func toggleCrawl() {
-        DispatchQueue.main.async {
-            self.isCrawling.toggle()
-            self.currentAction = self.isCrawling ? .crawling : .idle
-        }
+        isCrawling.toggle()
+        currentAction = isCrawling ? .crawling : .idle
     }
 
     func startClimbing() {
-        DispatchQueue.main.async {
-            self.isClimbing = true
-            self.currentAction = .climbing
-        }
+        isClimbing = true
+        currentAction = .climbing
     }
 
     func stopClimbing() {
-        DispatchQueue.main.async {
-            self.isClimbing = false
-            self.currentAction = .idle
-        }
+        isClimbing = false
+        currentAction = .idle
     }
 
     func knockOver() {
-        DispatchQueue.main.async {
-            self.currentAction = .knocking
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.currentAction = .idle
+        currentAction = .knocking
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            self.currentAction = .idle
         }
     }
 
     func steal() {
-        DispatchQueue.main.async {
-            self.currentAction = .stealing
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.currentAction = .idle
+        currentAction = .stealing
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            self.currentAction = .idle
         }
     }
 
     func hideInBox() {
-        DispatchQueue.main.async {
-            self.currentAction = .hiding
-        }
+        currentAction = .hiding
     }
 
     func exitBox() {
-        DispatchQueue.main.async {
-            self.currentAction = .idle
-        }
+        currentAction = .idle
     }
 
     func stopMovement() {
-        DispatchQueue.main.async {
-            self.currentAction = .idle
-        }
+        currentAction = .idle
     }
 
     // MARK: - Collision Detection
@@ -177,4 +169,9 @@ class CatController: ObservableObject {
         }
         return false
     }
+
+    deinit {
+        jumpTask?.cancel()
+    }
 }
+
