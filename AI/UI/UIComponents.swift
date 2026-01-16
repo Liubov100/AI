@@ -298,11 +298,19 @@ struct QuestCardView: View {
         if let index = gameState.quests.firstIndex(where: { $0.id == quest.id }) {
             gameState.quests[index].status = .active
             gameState.activeQuest = gameState.quests[index]
+            Task {
+                try? await FirebaseService.shared.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
+            }
         }
     }
 
     func completeQuest() {
         gameState.completeQuest(quest)
+        Task {
+            try? await FirebaseService.shared.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
+            try? await FirebaseService.shared.saveQuest(quest)
+            LocalStorageService.shared.saveQuests(gameState.quests)
+        }
     }
 }
 
@@ -426,6 +434,9 @@ struct HatCardView: View {
             if isUnlocked {
                 Button(isEquipped ? "Equipped" : "Equip") {
                     gameState.equippedHat = hat
+                    Task {
+                        try? await FirebaseService.shared.saveGameState(gameState)
+                    }
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(isEquipped)
@@ -454,9 +465,14 @@ struct HatCardView: View {
         if gameState.inventory.shinies >= hat.cost {
             gameState.inventory.shinies -= hat.cost
             gameState.inventory.hatsUnlocked.append(hat.id)
+            Task {
+                try? await FirebaseService.shared.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
+                LocalStorageService.shared.saveInventory(gameState.inventory)
+            }
         }
     }
 }
+
 
 // MARK: - City Environment
 struct CityEnvironmentView: View {

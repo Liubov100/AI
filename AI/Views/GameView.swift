@@ -460,14 +460,26 @@ struct GameView: View {
         case .vase:
             catController.knockOver()
             gameState.playerStats.itemsKnockedOver += 1
+            Task {
+                try? await firebaseService.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
+            }
         case .person:
             gameState.playerStats.peopleTripped += 1
+            Task {
+                try? await firebaseService.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
+            }
         case .bird:
             gameState.playerStats.birdsChased += 1
+            Task {
+                try? await firebaseService.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
+            }
         default:
             break
         }
         object.isInteracted = true
+        Task {
+            try? await firebaseService.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
+        }
     }
 
     func findNearbyInteractable() -> String? {
