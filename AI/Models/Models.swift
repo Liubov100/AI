@@ -204,7 +204,7 @@ struct Inventory: Codable {
 }
 
 // MARK: - Collectable
-struct Collectable: Identifiable, Codable {
+struct Collectable: Identifiable, Codable, Equatable {
     let id: String
     let type: CollectableType
     let position: CGPoint
@@ -216,6 +216,14 @@ struct Collectable: Identifiable, Codable {
         self.type = type
         self.position = position
         self.hatId = hatId
+    }
+
+    static func == (lhs: Collectable, rhs: Collectable) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.type == rhs.type &&
+        lhs.position == rhs.position &&
+        lhs.isCollected == rhs.isCollected &&
+        lhs.hatId == rhs.hatId
     }
 }
 
@@ -335,11 +343,18 @@ enum AnimalType: String, Codable {
 }
 
 // MARK: - Interactive Objects
-struct InteractiveObject: Identifiable {
+struct InteractiveObject: Identifiable, Equatable {
     let id: String
     let type: ObjectType
     var position: CGPoint
     var isInteracted: Bool = false
+
+    static func == (lhs: InteractiveObject, rhs: InteractiveObject) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.type == rhs.type &&
+        lhs.position == rhs.position &&
+        lhs.isInteracted == rhs.isInteracted
+    }
 }
 
 enum ObjectType: String {

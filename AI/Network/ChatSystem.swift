@@ -17,6 +17,17 @@ struct ChatMessage: Identifiable, Codable {
     let message: String
     let timestamp: Date
     let isAI: Bool
+    let recipientId: String? // nil for global chat, playerId for private messages
+
+    init(id: String = UUID().uuidString, senderId: String, senderName: String, message: String, timestamp: Date = Date(), isAI: Bool, recipientId: String? = nil) {
+        self.id = id
+        self.senderId = senderId
+        self.senderName = senderName
+        self.message = message
+        self.timestamp = timestamp
+        self.isAI = isAI
+        self.recipientId = recipientId
+    }
 }
 
 // MARK: - AI Personality
@@ -86,6 +97,66 @@ enum AIPersonality {
             ]
         }
     }
+
+    func responseToMessage(_ message: String) -> String {
+        let lowercased = message.lowercased()
+
+        // Check for greetings
+        if lowercased.contains("hi") || lowercased.contains("hello") || lowercased.contains("hey") {
+            return greetings.randomElement()!
+        }
+
+        // Check for questions about shinies
+        if lowercased.contains("shiny") || lowercased.contains("shinies") {
+            switch self {
+            case .friendly:
+                return ["I found some near the buildings!", "Check by the trees!", "The lamp posts usually have some nearby!"].randomElement()!
+            case .sarcastic:
+                return ["Look harder, they're everywhere.", "Maybe try using your eyes?", "They're literally shining, how hard can it be?"].randomElement()!
+            case .mysterious:
+                return ["Follow the light...", "The shiniest treasures hide in shadows.", "Look where others don't."].randomElement()!
+            case .cheerful:
+                return ["I LOVE shinies!! They're SO pretty!", "I can help you find some!!", "Let's go shiny hunting together!"].randomElement()!
+            case .wise:
+                return ["Shinies appear to those who wander with purpose.", "Patience reveals hidden treasures.", "The city provides for the observant."].randomElement()!
+            }
+        }
+
+        // Check for questions about quests
+        if lowercased.contains("quest") {
+            switch self {
+            case .friendly:
+                return ["I'm working on collecting feathers! What about you?", "The quests here are pretty fun!", "Want to do a quest together?"].randomElement()!
+            case .sarcastic:
+                return ["Oh, you mean those super exciting tasks?", "Yeah, quests. Real groundbreaking stuff.", "Thrilling. Absolutely thrilling."].randomElement()!
+            case .mysterious:
+                return ["Some quests are not what they seem...", "The true quest is within.", "Choose your path wisely."].randomElement()!
+            case .cheerful:
+                return ["Quests are SO much fun!!", "I just completed one!! It was AMAZING!", "Let's do ALL the quests!!"].randomElement()!
+            case .wise:
+                return ["Each quest teaches a valuable lesson.", "The journey matters more than the reward.", "Embrace the challenge before you."].randomElement()!
+            }
+        }
+
+        // Check for general questions (how, what, where, why)
+        if lowercased.contains("how") || lowercased.contains("what") || lowercased.contains("where") || lowercased.contains("why") {
+            switch self {
+            case .friendly:
+                return ["Good question! Let me think...", "Hmm, I'm not entirely sure, but...", "That's interesting! I wonder too."].randomElement()!
+            case .sarcastic:
+                return ["Wouldn't we all like to know?", "That's the million-dollar question, isn't it?", "Your guess is as good as mine."].randomElement()!
+            case .mysterious:
+                return ["The answer lies within you...", "Some questions have no answers.", "Seek and you shall find."].randomElement()!
+            case .cheerful:
+                return ["That's a great question!!", "I love your curiosity!", "Let's figure it out together!!"].randomElement()!
+            case .wise:
+                return ["The answer reveals itself in time.", "Ask not what, but why.", "Understanding comes from within."].randomElement()!
+            }
+        }
+
+        // Default response
+        return randomMessages.randomElement()!
+    }
 }
 
 // MARK: - Chat Manager
@@ -93,8 +164,10 @@ enum AIPersonality {
 class ChatManager: ObservableObject {
     static let shared = ChatManager()
 
-    @Published var messages: [ChatMessage] = []
+    @Published var messages: [ChatMessage] = [] // Global chat messages
     @Published var unreadCount: Int = 0
+    @Published var privateConversations: [String: [ChatMessage]] = [:] // friendId -> messages
+    @Published var unreadPrivateMessages: [String: Int] = [:] // friendId -> unread count
 
     private var aiPersonalities: [String: AIPersonality] = [:]
     private var lastAIMessage: [String: Date] = [:]
@@ -160,35 +233,102 @@ class ChatManager: ObservableObject {
         return names[index]
     }
 
-    func sendMessage(senderId: String, senderName: String, message: String, isAI: Bool = false) {
+    func sendMessage(senderId: String, senderName: String, message: String, isAI: Bool = false, recipientId: String? = nil) {
         let chatMessage = ChatMessage(
             id: UUID().uuidString,
             senderId: senderId,
             senderName: senderName,
             message: message,
             timestamp: Date(),
-            isAI: isAI
+            isAI: isAI,
+            recipientId: recipientId
         )
 
-        messages.append(chatMessage)
+        if let recipientId = recipientId {
+            // Private message
+            let conversationId = getConversationId(senderId: senderId, recipientId: recipientId)
 
-        // Keep only last 50 messages
-        if messages.count > 50 {
-            messages.removeFirst()
-        }
+            if privateConversations[conversationId] == nil {
+                privateConversations[conversationId] = []
+            }
+            privateConversations[conversationId]?.append(chatMessage)
 
-        if isAI {
-            unreadCount += 1
+            // Keep only last 100 private messages per conversation
+            if privateConversations[conversationId]!.count > 100 {
+                privateConversations[conversationId]?.removeFirst()
+            }
+
+            // If it's from AI, mark as unread
+            if isAI {
+                unreadPrivateMessages[conversationId, default: 0] += 1
+            }
+
+            // AI auto-responds to private messages
+            if !isAI, let personality = aiPersonalities[recipientId] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + Double.random(in: 1...3)) {
+                    let response = personality.responseToMessage(message)
+                    self.sendMessage(
+                        senderId: recipientId,
+                        senderName: self.getPlayerName(recipientId),
+                        message: response,
+                        isAI: true,
+                        recipientId: senderId
+                    )
+                }
+            }
+        } else {
+            // Global message
+            messages.append(chatMessage)
+
+            // Keep only last 50 messages
+            if messages.count > 50 {
+                messages.removeFirst()
+            }
+
+            if isAI {
+                unreadCount += 1
+            }
         }
+    }
+
+    func getConversationId(senderId: String, recipientId: String) -> String {
+        // Always use consistent ordering for conversation ID
+        let sorted = [senderId, recipientId].sorted()
+        return "\(sorted[0])_\(sorted[1])"
+    }
+
+    func getPrivateMessages(withFriend friendId: String, localPlayerId: String) -> [ChatMessage] {
+        let conversationId = getConversationId(senderId: localPlayerId, recipientId: friendId)
+        return privateConversations[conversationId] ?? []
     }
 
     func markAsRead() {
         unreadCount = 0
     }
 
+    func markPrivateChatAsRead(friendId: String, localPlayerId: String) {
+        let conversationId = getConversationId(senderId: localPlayerId, recipientId: friendId)
+        unreadPrivateMessages[conversationId] = 0
+    }
+
+    func getTotalUnreadPrivateMessages() -> Int {
+        return unreadPrivateMessages.values.reduce(0, +)
+    }
+
+    func getUnreadCount(forFriend friendId: String, localPlayerId: String) -> Int {
+        let conversationId = getConversationId(senderId: localPlayerId, recipientId: friendId)
+        return unreadPrivateMessages[conversationId] ?? 0
+    }
+
     func clearMessages() {
         messages.removeAll()
         unreadCount = 0
+    }
+
+    func clearPrivateConversation(friendId: String, localPlayerId: String) {
+        let conversationId = getConversationId(senderId: localPlayerId, recipientId: friendId)
+        privateConversations[conversationId] = []
+        unreadPrivateMessages[conversationId] = 0
     }
 
     deinit {

@@ -24,6 +24,7 @@ struct GameView: View {
     @State private var showSettings = false
     @State private var showChat = false
     @State private var showActivityFeed = false
+    @State private var showFriends = false
     @State private var use3DCamera = false
     @State private var collectables: [Collectable] = []
     @State private var npcs: [NPC] = []
@@ -92,6 +93,28 @@ struct GameView: View {
 
                             // Chat Button
                             ChatButtonView(chatManager: chatManager, showChat: $showChat)
+
+                            // Friends Button
+                            Button(action: { showFriends.toggle() }) {
+                                ZStack(alignment: .topTrailing) {
+                                    Image(systemName: "person.2.fill")
+                                        .font(.title2)
+                                        .padding(10)
+                                        .background(Color.white.opacity(0.8))
+                                        .cornerRadius(10)
+
+                                    if chatManager.getTotalUnreadPrivateMessages() > 0 {
+                                        Text("\(chatManager.getTotalUnreadPrivateMessages())")
+                                            .font(.caption2)
+                                            .bold()
+                                            .foregroundColor(.white)
+                                            .padding(4)
+                                            .background(Color.purple)
+                                            .clipShape(Circle())
+                                            .offset(x: 5, y: -5)
+                                    }
+                                }
+                            }
 
                             // Activity Feed Button
                             ActivityFeedButton(eventManager: eventManager, showFeed: $showActivityFeed)
@@ -175,6 +198,26 @@ struct GameView: View {
                 }
                 .transition(.move(edge: .trailing).combined(with: .opacity))
                 .zIndex(998)
+            }
+
+            // Friends List
+            if showFriends {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        FriendsListView(
+                            chatManager: chatManager,
+                            networkManager: networkManager,
+                            isShowing: $showFriends,
+                            localPlayerId: networkManager.localPlayerId,
+                            localPlayerName: gameState.playerStats.catName
+                        )
+                        .padding()
+                    }
+                }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+                .zIndex(997)
             }
 
             // Tutorial overlay

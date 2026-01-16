@@ -594,18 +594,11 @@ class SceneManager: NSObject, ObservableObject, SCNSceneRendererDelegate {
             body.firstMaterial?.diffuse.contents = NSColor.systemRed
             node.geometry = body
 
-        case .yarn:
-            let yarn = SCNSphere(radius: 0.3)
-            yarn.firstMaterial?.diffuse.contents = NSColor.systemPurple
-            node.geometry = yarn
-
-        case .climableObject:
-            let pole = SCNCylinder(radius: 0.1, height: 3.0)
-            pole.firstMaterial?.diffuse.contents = NSColor.gray
-            pole.firstMaterial?.metalness.contents = 0.8
-            let poleNode = SCNNode(geometry: pole)
-            poleNode.position = SCNVector3(x: 0, y: 1.5, z: 0)
-            node.addChildNode(poleNode)
+        case .foodStall:
+            // Food stall
+            let stall = SCNBox(width: 2.0, height: 1.5, length: 1.0, chamferRadius: 0.1)
+            stall.firstMaterial?.diffuse.contents = NSColor.systemOrange
+            node.geometry = stall
         }
 
         return node
@@ -771,8 +764,16 @@ struct Scene3DView: View {
             sceneManager.startUpdateLoop(
                 catController: catController,
                 cameraController: cameraController,
-                networkManager: networkManager
+                networkManager: networkManager,
+                collectables: collectables,
+                interactiveObjects: interactiveObjects
             )
+        }
+        .onChange(of: collectables) { _, newValue in
+            sceneManager.updateCollectablesData(newValue)
+        }
+        .onChange(of: interactiveObjects) { _, newValue in
+            sceneManager.updateInteractiveObjectsData(newValue)
         }
         .onDisappear {
             sceneManager.stopUpdateLoop()
