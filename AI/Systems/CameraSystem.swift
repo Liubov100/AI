@@ -142,20 +142,40 @@ class SceneManager: NSObject, ObservableObject, SCNSceneRendererDelegate {
     private weak var cameraController: CameraController?
     private weak var networkManager: NetworkManager?
 
+    private var collectableNodes: [String: SCNNode] = [:]
+    private var interactiveObjectNodes: [String: SCNNode] = [:]
+
     func setupScene() {
-        // Ground plane
+        // Ground - City street with grid pattern
         let ground = SCNNode()
         let groundGeometry = SCNPlane(width: 100, height: 100)
-        groundGeometry.firstMaterial?.diffuse.contents = NSColor(red: 0.5, green: 0.7, blue: 0.4, alpha: 1.0)
+        groundGeometry.firstMaterial?.diffuse.contents = NSColor(red: 0.3, green: 0.3, blue: 0.35, alpha: 1.0)
+        groundGeometry.firstMaterial?.roughness.contents = NSColor(white: 0.8, alpha: 1.0)
+        groundGeometry.firstMaterial?.metalness.contents = 0.1
         ground.geometry = groundGeometry
         ground.eulerAngles = SCNVector3(x: -.pi / 2, y: 0, z: 0)
         scene.rootNode.addChildNode(ground)
 
-        // Setup camera
+        // Add grid lines for street effect
+        createStreetGrid()
+
+        // Add buildings
+        createBuildings()
+
+        // Add trees/plants
+        createVegetation()
+
+        // Add city props (benches, trash cans, etc)
+        createCityProps()
+
+        // Setup camera with better settings
         let camera = SCNCamera()
         camera.fieldOfView = 60
         camera.zNear = 0.1
         camera.zFar = 1000
+        camera.wantsDepthOfField = true
+        camera.focalLength = 50
+        camera.fStop = 2.8
         cameraNode.camera = camera
         cameraNode.position = SCNVector3(x: 0, y: 5, z: 10)
         scene.rootNode.addChildNode(cameraNode)
@@ -165,22 +185,220 @@ class SceneManager: NSObject, ObservableObject, SCNSceneRendererDelegate {
         catNode?.position = SCNVector3(x: 0, y: 0.5, z: 0)
         scene.rootNode.addChildNode(catNode!)
 
-        // Add ambient light to reduce flashing
+        // Enhanced lighting setup
+        setupLighting()
+    }
+
+    private func setupLighting() {
+        // Add ambient light
         let ambientLight = SCNNode()
         ambientLight.light = SCNLight()
         ambientLight.light!.type = .ambient
-        ambientLight.light!.color = NSColor(white: 0.6, alpha: 1.0)
+        ambientLight.light!.color = NSColor(red: 0.4, green: 0.5, blue: 0.6, alpha: 1.0)
+        ambientLight.light!.intensity = 200
         scene.rootNode.addChildNode(ambientLight)
 
-        // Add directional light (sun)
+        // Add main directional light (sun)
         let sunLight = SCNNode()
         sunLight.light = SCNLight()
         sunLight.light!.type = .directional
-        sunLight.light!.color = NSColor(white: 0.8, alpha: 1.0)
+        sunLight.light!.color = NSColor(red: 1.0, green: 0.95, blue: 0.8, alpha: 1.0)
+        sunLight.light!.intensity = 1000
         sunLight.light!.castsShadow = true
+        sunLight.light!.shadowMode = .deferred
+        sunLight.light!.shadowSampleCount = 16
         sunLight.position = SCNVector3(x: 10, y: 20, z: 10)
         sunLight.look(at: SCNVector3Zero)
         scene.rootNode.addChildNode(sunLight)
+
+        // Add fill light
+        let fillLight = SCNNode()
+        fillLight.light = SCNLight()
+        fillLight.light!.type = .omni
+        fillLight.light!.color = NSColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0)
+        fillLight.light!.intensity = 300
+        fillLight.position = SCNVector3(x: -5, y: 5, z: -5)
+        scene.rootNode.addChildNode(fillLight)
+    }
+
+    private func createStreetGrid() {
+        // Create street lines
+        for i in -5...5 {
+            let lineGeometry = SCNBox(width: 0.1, height: 0.01, length: 100, chamferRadius: 0)
+            lineGeometry.firstMaterial?.diffuse.contents = NSColor.white.withAlphaComponent(0.3)
+            let line = SCNNode(geometry: lineGeometry)
+            line.position = SCNVector3(x: CGFloat(i * 10), y: 0.01, z: 0)
+            scene.rootNode.addChildNode(line)
+        }
+
+        for i in -5...5 {
+            let lineGeometry = SCNBox(width: 100, height: 0.01, length: 0.1, chamferRadius: 0)
+            lineGeometry.firstMaterial?.diffuse.contents = NSColor.white.withAlphaComponent(0.3)
+            let line = SCNNode(geometry: lineGeometry)
+            line.position = SCNVector3(x: 0, y: 0.01, z: CGFloat(i * 10))
+            scene.rootNode.addChildNode(line)
+        }
+    }
+
+    private func createBuildings() {
+        let buildingPositions = [
+            (x: -20, z: -20, w: 8, h: 15, d: 8),
+            (x: 20, z: -20, w: 10, h: 20, d: 10),
+            (x: -20, z: 20, w: 6, h: 12, d: 6),
+            (x: 20, z: 20, w: 8, h: 18, d: 8),
+            (x: -35, z: 0, w: 7, h: 16, d: 7),
+            (x: 35, z: 0, w: 9, h: 14, d: 9),
+        ]
+
+        for (x, z, width, height, depth) in buildingPositions {
+            let building = SCNBox(width: CGFloat(width), height: CGFloat(height), length: CGFloat(depth), chamferRadius: 0.2)
+
+            // Building material
+            building.firstMaterial?.diffuse.contents = NSColor(
+                red: CGFloat.random(in: 0.6...0.8),
+                green: CGFloat.random(in: 0.6...0.8),
+                blue: CGFloat.random(in: 0.6...0.8),
+                alpha: 1.0
+            )
+            building.firstMaterial?.roughness.contents = 0.7
+            building.firstMaterial?.metalness.contents = 0.2
+
+            let buildingNode = SCNNode(geometry: building)
+            buildingNode.position = SCNVector3(x: CGFloat(x), y: CGFloat(height) / 2, z: CGFloat(z))
+            scene.rootNode.addChildNode(buildingNode)
+
+            // Add windows
+            addWindows(to: buildingNode, width: width, height: height, depth: depth)
+        }
+    }
+
+    private func addWindows(to building: SCNNode, width: Int, height: Int, depth: Int) {
+        let windowSize: CGFloat = 0.4
+        let windowSpacing: CGFloat = 1.0
+
+        // Front windows
+        for row in 1..<height {
+            for col in 0..<(width - 1) {
+                let window = SCNBox(width: windowSize, height: windowSize, length: 0.05, chamferRadius: 0.02)
+                let isLit = Bool.random()
+                window.firstMaterial?.diffuse.contents = isLit ? NSColor.yellow : NSColor.darkGray
+                window.firstMaterial?.emission.contents = isLit ? NSColor.yellow.withAlphaComponent(0.5) : NSColor.clear
+
+                let windowNode = SCNNode(geometry: window)
+                windowNode.position = SCNVector3(
+                    x: CGFloat(col - (width / 2)) * windowSpacing,
+                    y: CGFloat(row - (height / 2)) * windowSpacing,
+                    z: CGFloat(depth) / 2 + 0.05
+                )
+                building.addChildNode(windowNode)
+            }
+        }
+    }
+
+    private func createVegetation() {
+        // Add trees/plants around the city
+        let treePositions = [
+            (-15, -15), (15, -15), (-15, 15), (15, 15),
+            (-10, 0), (10, 0), (0, -10), (0, 10),
+            (-25, -10), (25, -10), (-25, 10), (25, 10)
+        ]
+
+        for (x, z) in treePositions {
+            let tree = createTree()
+            tree.position = SCNVector3(x: CGFloat(x), y: 0, z: CGFloat(z))
+            scene.rootNode.addChildNode(tree)
+        }
+    }
+
+    private func createTree() -> SCNNode {
+        let treeNode = SCNNode()
+
+        // Trunk
+        let trunk = SCNCylinder(radius: 0.2, height: 2)
+        trunk.firstMaterial?.diffuse.contents = NSColor(red: 0.4, green: 0.25, blue: 0.15, alpha: 1.0)
+        let trunkNode = SCNNode(geometry: trunk)
+        trunkNode.position = SCNVector3(x: 0, y: 1, z: 0)
+        treeNode.addChildNode(trunkNode)
+
+        // Foliage
+        let foliage = SCNSphere(radius: 1.2)
+        foliage.firstMaterial?.diffuse.contents = NSColor(red: 0.2, green: 0.6, blue: 0.3, alpha: 1.0)
+        foliage.firstMaterial?.roughness.contents = 0.9
+        let foliageNode = SCNNode(geometry: foliage)
+        foliageNode.position = SCNVector3(x: 0, y: 2.5, z: 0)
+        treeNode.addChildNode(foliageNode)
+
+        return treeNode
+    }
+
+    private func createCityProps() {
+        // Add benches
+        for i in 0..<4 {
+            let bench = createBench()
+            let angle = CGFloat(i) * .pi / 2
+            bench.position = SCNVector3(x: cos(angle) * 12, y: 0, z: sin(angle) * 12)
+            bench.eulerAngles = SCNVector3(x: 0, y: angle + .pi / 2, z: 0)
+            scene.rootNode.addChildNode(bench)
+        }
+
+        // Add lamp posts
+        for i in 0..<8 {
+            let lamp = createLampPost()
+            let angle = CGFloat(i) * .pi / 4
+            lamp.position = SCNVector3(x: cos(angle) * 18, y: 0, z: sin(angle) * 18)
+            scene.rootNode.addChildNode(lamp)
+        }
+    }
+
+    private func createBench() -> SCNNode {
+        let benchNode = SCNNode()
+
+        // Seat
+        let seat = SCNBox(width: 1.5, height: 0.1, length: 0.5, chamferRadius: 0.02)
+        seat.firstMaterial?.diffuse.contents = NSColor(red: 0.5, green: 0.3, blue: 0.2, alpha: 1.0)
+        let seatNode = SCNNode(geometry: seat)
+        seatNode.position = SCNVector3(x: 0, y: 0.4, z: 0)
+        benchNode.addChildNode(seatNode)
+
+        // Back
+        let back = SCNBox(width: 1.5, height: 0.5, length: 0.1, chamferRadius: 0.02)
+        back.firstMaterial?.diffuse.contents = NSColor(red: 0.5, green: 0.3, blue: 0.2, alpha: 1.0)
+        let backNode = SCNNode(geometry: back)
+        backNode.position = SCNVector3(x: 0, y: 0.65, z: -0.25)
+        benchNode.addChildNode(backNode)
+
+        return benchNode
+    }
+
+    private func createLampPost() -> SCNNode {
+        let lampNode = SCNNode()
+
+        // Post
+        let post = SCNCylinder(radius: 0.08, height: 4)
+        post.firstMaterial?.diffuse.contents = NSColor.darkGray
+        post.firstMaterial?.metalness.contents = 0.8
+        let postNode = SCNNode(geometry: post)
+        postNode.position = SCNVector3(x: 0, y: 2, z: 0)
+        lampNode.addChildNode(postNode)
+
+        // Light fixture
+        let fixture = SCNSphere(radius: 0.3)
+        fixture.firstMaterial?.diffuse.contents = NSColor.white
+        fixture.firstMaterial?.emission.contents = NSColor.yellow
+        let fixtureNode = SCNNode(geometry: fixture)
+        fixtureNode.position = SCNVector3(x: 0, y: 4, z: 0)
+        lampNode.addChildNode(fixtureNode)
+
+        // Add actual light source
+        let light = SCNLight()
+        light.type = .omni
+        light.color = NSColor.yellow
+        light.intensity = 500
+        light.attenuationStartDistance = 5
+        light.attenuationEndDistance = 15
+        fixtureNode.light = light
+
+        return lampNode
     }
 
     func updateCatPosition(_ position: CGPoint) {
@@ -227,16 +445,199 @@ class SceneManager: NSObject, ObservableObject, SCNSceneRendererDelegate {
         }
     }
 
-    func startUpdateLoop(catController: CatController, cameraController: CameraController, networkManager: NetworkManager) {
+    func updateCollectables(_ collectables: [Collectable]) {
+        // Remove collected items
+        for (id, node) in collectableNodes {
+            if let collectable = collectables.first(where: { $0.id == id }) {
+                if collectable.isCollected {
+                    node.removeFromParentNode()
+                    collectableNodes.removeValue(forKey: id)
+                }
+            }
+        }
+
+        // Add new collectables
+        for collectable in collectables where !collectable.isCollected {
+            if collectableNodes[collectable.id] == nil {
+                let node = createCollectableNode(collectable: collectable)
+                node.position = SCNVector3(
+                    x: CGFloat(collectable.position.x),
+                    y: 0.5,
+                    z: CGFloat(collectable.position.y)
+                )
+                scene.rootNode.addChildNode(node)
+                collectableNodes[collectable.id] = node
+
+                // Add floating animation
+                let floatAction = SCNAction.sequence([
+                    SCNAction.moveBy(x: 0, y: 0.2, z: 0, duration: 1.0),
+                    SCNAction.moveBy(x: 0, y: -0.2, z: 0, duration: 1.0)
+                ])
+                node.runAction(SCNAction.repeatForever(floatAction))
+
+                // Add rotation animation
+                let rotateAction = SCNAction.rotateBy(x: 0, y: .pi * 2, z: 0, duration: 3.0)
+                node.runAction(SCNAction.repeatForever(rotateAction))
+            }
+        }
+    }
+
+    func updateInteractiveObjects(_ objects: [InteractiveObject]) {
+        // Remove or update interactive objects
+        for object in objects {
+            if interactiveObjectNodes[object.id] == nil {
+                let node = createInteractiveObjectNode(object: object)
+                node.position = SCNVector3(
+                    x: CGFloat(object.position.x),
+                    y: 0.5,
+                    z: CGFloat(object.position.y)
+                )
+                scene.rootNode.addChildNode(node)
+                interactiveObjectNodes[object.id] = node
+            }
+        }
+    }
+
+    private func createCollectableNode(collectable: Collectable) -> SCNNode {
+        let node = SCNNode()
+
+        switch collectable.type {
+        case .shiny:
+            // Create sparkling gem
+            let gem = SCNSphere(radius: 0.25)
+            gem.firstMaterial?.diffuse.contents = NSColor.yellow
+            gem.firstMaterial?.emission.contents = NSColor.yellow.withAlphaComponent(0.6)
+            gem.firstMaterial?.metalness.contents = 1.0
+            gem.firstMaterial?.roughness.contents = 0.2
+            node.geometry = gem
+
+        case .fish:
+            // Create fish shape
+            let body = SCNBox(width: 0.4, height: 0.2, length: 0.6, chamferRadius: 0.1)
+            body.firstMaterial?.diffuse.contents = NSColor.systemBlue
+            body.firstMaterial?.metalness.contents = 0.5
+            let bodyNode = SCNNode(geometry: body)
+            node.addChildNode(bodyNode)
+
+            // Tail
+            let tail = SCNCone(topRadius: 0, bottomRadius: 0.2, height: 0.3)
+            tail.firstMaterial?.diffuse.contents = NSColor.systemBlue
+            let tailNode = SCNNode(geometry: tail)
+            tailNode.position = SCNVector3(x: 0, y: 0, z: -0.4)
+            tailNode.eulerAngles = SCNVector3(x: .pi / 2, y: 0, z: 0)
+            node.addChildNode(tailNode)
+
+        case .feather:
+            // Create feather
+            let feather = SCNBox(width: 0.1, height: 0.6, length: 0.05, chamferRadius: 0.02)
+            feather.firstMaterial?.diffuse.contents = NSColor.systemPink
+            feather.firstMaterial?.transparency = 0.8
+            node.geometry = feather
+
+        case .hat:
+            // Create hat (top hat shape)
+            let brim = SCNCylinder(radius: 0.35, height: 0.05)
+            brim.firstMaterial?.diffuse.contents = NSColor.black
+            let brimNode = SCNNode(geometry: brim)
+            brimNode.position = SCNVector3(x: 0, y: 0, z: 0)
+            node.addChildNode(brimNode)
+
+            let top = SCNCylinder(radius: 0.25, height: 0.4)
+            top.firstMaterial?.diffuse.contents = NSColor.black
+            let topNode = SCNNode(geometry: top)
+            topNode.position = SCNVector3(x: 0, y: 0.225, z: 0)
+            node.addChildNode(topNode)
+        }
+
+        return node
+    }
+
+    private func createInteractiveObjectNode(object: InteractiveObject) -> SCNNode {
+        let node = SCNNode()
+
+        switch object.type {
+        case .box:
+            let box = SCNBox(width: 1.0, height: 1.0, length: 1.0, chamferRadius: 0.05)
+            box.firstMaterial?.diffuse.contents = NSColor.brown
+            box.firstMaterial?.roughness.contents = 0.8
+            node.geometry = box
+
+        case .trashCan:
+            let can = SCNCylinder(radius: 0.4, height: 1.0)
+            can.firstMaterial?.diffuse.contents = NSColor.darkGray
+            can.firstMaterial?.metalness.contents = 0.7
+            node.geometry = can
+
+        case .vase:
+            let vase = SCNCylinder(radius: 0.3, height: 0.8)
+            vase.firstMaterial?.diffuse.contents = NSColor.systemTeal
+            vase.firstMaterial?.metalness.contents = 0.3
+            node.geometry = vase
+
+        case .person:
+            // Simple person representation
+            let body = SCNCapsule(capRadius: 0.3, height: 1.5)
+            body.firstMaterial?.diffuse.contents = NSColor.systemIndigo
+            let bodyNode = SCNNode(geometry: body)
+            bodyNode.position = SCNVector3(x: 0, y: 0.75, z: 0)
+            node.addChildNode(bodyNode)
+
+            let head = SCNSphere(radius: 0.25)
+            head.firstMaterial?.diffuse.contents = NSColor.systemOrange
+            let headNode = SCNNode(geometry: head)
+            headNode.position = SCNVector3(x: 0, y: 1.7, z: 0)
+            node.addChildNode(headNode)
+
+        case .bird:
+            // Simple bird
+            let body = SCNSphere(radius: 0.2)
+            body.firstMaterial?.diffuse.contents = NSColor.systemRed
+            node.geometry = body
+
+        case .yarn:
+            let yarn = SCNSphere(radius: 0.3)
+            yarn.firstMaterial?.diffuse.contents = NSColor.systemPurple
+            node.geometry = yarn
+
+        case .climableObject:
+            let pole = SCNCylinder(radius: 0.1, height: 3.0)
+            pole.firstMaterial?.diffuse.contents = NSColor.gray
+            pole.firstMaterial?.metalness.contents = 0.8
+            let poleNode = SCNNode(geometry: pole)
+            poleNode.position = SCNVector3(x: 0, y: 1.5, z: 0)
+            node.addChildNode(poleNode)
+        }
+
+        return node
+    }
+
+    private var collectables: [Collectable] = []
+    private var interactiveObjects: [InteractiveObject] = []
+
+    func startUpdateLoop(catController: CatController, cameraController: CameraController, networkManager: NetworkManager, collectables: [Collectable], interactiveObjects: [InteractiveObject]) {
         self.catController = catController
         self.cameraController = cameraController
         self.networkManager = networkManager
+        self.collectables = collectables
+        self.interactiveObjects = interactiveObjects
+
+        // Initial setup of collectables and objects
+        updateCollectables(collectables)
+        updateInteractiveObjects(interactiveObjects)
     }
 
     func stopUpdateLoop() {
         catController = nil
         cameraController = nil
         networkManager = nil
+    }
+
+    func updateCollectablesData(_ collectables: [Collectable]) {
+        self.collectables = collectables
+    }
+
+    func updateInteractiveObjectsData(_ objects: [InteractiveObject]) {
+        self.interactiveObjects = objects
     }
 
     // SCNSceneRendererDelegate method - called every frame
@@ -249,6 +650,8 @@ class SceneManager: NSObject, ObservableObject, SCNSceneRendererDelegate {
             updateCatPosition(catController.position)
             updateCamera(cameraController.position, lookAt: cameraController.lookAt)
             updateNetworkPlayers(networkManager.connectedPlayers)
+            updateCollectables(collectables)
+            updateInteractiveObjects(interactiveObjects)
         }
     }
 
