@@ -10,6 +10,7 @@ import SceneKit
 import Combine
 
 // MARK: - Camera Controller
+@MainActor
 class CameraController: ObservableObject {
     @Published var position = SCNVector3(x: 0, y: 5, z: 10)
     @Published var lookAt = SCNVector3(x: 0, y: 0, z: 0)

@@ -53,11 +53,20 @@ struct SceneKitView: UIViewRepresentable {
             floorNode.opacity = 0.0
             scene.rootNode.addChildNode(floorNode)
 
-            // Simple cat node
-            let catGeometry = SCNSphere(radius: 16)
-            catGeometry.firstMaterial?.diffuse.contents = UIColor.black
-            let cat = SCNNode(geometry: catGeometry)
-            cat.position = SCNVector3(0, 0, 0)
+            // Simple cat node (composite)
+            let body = SCNCapsule(capRadius: 10, height: 24)
+            body.firstMaterial?.diffuse.contents = UIColor.black
+            let bodyNode = SCNNode(geometry: body)
+            bodyNode.position = SCNVector3(0, 0, 0)
+
+            let head = SCNSphere(radius: 8)
+            head.firstMaterial?.diffuse.contents = UIColor.black
+            let headNode = SCNNode(geometry: head)
+            headNode.position = SCNVector3(0, 12, 0)
+
+            let cat = SCNNode()
+            cat.addChildNode(bodyNode)
+            cat.addChildNode(headNode)
             scene.rootNode.addChildNode(cat)
             catNode = cat
         }
@@ -73,11 +82,24 @@ struct SceneKitView: UIViewRepresentable {
             // Update collectables
             for c in collectables where !c.isCollected {
                 if collectableNodes[c.id] == nil {
-                    let geo = SCNSphere(radius: 8)
+                    // Use a torus for shinies for a nicer 3D look
+                    let geo = SCNTorus(ringRadius: 10, pipeRadius: 3)
                     geo.firstMaterial?.diffuse.contents = UIColor.yellow
+                    geo.firstMaterial?.emission.contents = UIColor.white
                     let node = SCNNode(geometry: geo)
                     node.name = c.id
                     node.position = SCNVector3(Float(c.position.x), Float(-c.position.y), 0)
+
+                    // Add rotation and bobbing
+                    let rotate = SCNAction.rotateBy(x: 0, y: CGFloat.pi * 2, z: 0, duration: 2)
+                    let spin = SCNAction.repeatForever(rotate)
+                    let bobUp = SCNAction.moveBy(x: 0, y: 4, z: 0, duration: 0.8)
+                    bobUp.timingMode = .easeInEaseOut
+                    let bob = SCNAction.sequence([bobUp, bobUp.reversed()])
+                    let bobbing = SCNAction.repeatForever(bob)
+                    node.runAction(spin)
+                    node.runAction(bobbing)
+
                     scene.rootNode.addChildNode(node)
                     collectableNodes[c.id] = node
                 } else {
@@ -95,7 +117,7 @@ struct SceneKitView: UIViewRepresentable {
             // NPCs (simple boxes)
             for n in npcs {
                 if npcNodes[n.id] == nil {
-                    let geo = SCNBox(width: 20, height: 30, length: 8, chamferRadius: 2)
+                    let geo = SCNCylinder(radius: 8, height: 24)
                     geo.firstMaterial?.diffuse.contents = UIColor.brown
                     let node = SCNNode(geometry: geo)
                     node.name = n.id
@@ -115,6 +137,13 @@ struct SceneKitView: UIViewRepresentable {
                     let node = SCNNode(geometry: geo)
                     node.name = obj.id
                     node.position = SCNVector3(Float(obj.position.x), Float(-obj.position.y), 0)
+
+                    // subtle scale pulse
+                    let pulseUp = SCNAction.scale(to: 1.08, duration: 0.6)
+                    let pulseDown = SCNAction.scale(to: 1.0, duration: 0.6)
+                    let pulse = SCNAction.repeatForever(SCNAction.sequence([pulseUp, pulseDown]))
+                    node.runAction(pulse)
+
                     scene.rootNode.addChildNode(node)
                     interactiveNodes[obj.id] = node
                 } else {

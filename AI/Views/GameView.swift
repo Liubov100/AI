@@ -236,8 +236,10 @@ struct GameView: View {
 
     func loadGameState() async throws {
         if let savedState = try? await firebaseService.loadGameState() {
-            gameState.playerStats = savedState.0
-            gameState.inventory = savedState.1
+            await MainActor.run {
+                gameState.playerStats = savedState.0
+                gameState.inventory = savedState.1
+            }
         }
     }
 
