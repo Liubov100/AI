@@ -58,24 +58,17 @@ struct CollectableView: View {
         Group {
             switch collectable.type {
             case .shiny:
-                Image(systemName: "star.fill")
-                    .foregroundColor(.yellow)
-                    .font(.title)
+                ShinyView()
             case .feather:
-                Image(systemName: "leaf.fill")
-                    .foregroundColor(.green)
-                    .font(.title)
+                FeatherView()
             case .fish:
-                Image(systemName: "fish.fill")
-                    .foregroundColor(.blue)
-                    .font(.title)
+                FishView()
             case .hat:
                 Image(systemName: "crown.fill")
                     .foregroundColor(.purple)
                     .font(.title)
             }
         }
-        .shadow(radius: 5)
     }
 }
 
@@ -482,6 +475,47 @@ struct CityEnvironmentView: View {
                 .fill(Color.gray.opacity(0.3))
                 .frame(width: 150, height: 300)
                 .offset(x: 280, y: 50)
+
+            // Render interactive objects
+            ForEach(objects) { object in
+                InteractiveObjectView(object: object)
+                    .offset(x: object.position.x, y: object.position.y)
+            }
+        }
+    }
+}
+
+// MARK: - Interactive Object View
+struct InteractiveObjectView: View {
+    let object: InteractiveObject
+
+    var body: some View {
+        Group {
+            switch object.type {
+            case .box:
+                BoxView()
+            case .trashCan:
+                TrashCanView()
+            case .vase:
+                VaseView()
+            case .bird:
+                BirdView()
+            case .foodStall:
+                // Placeholder for food stall
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(Color.brown)
+                    .frame(width: 60, height: 40)
+            case .person:
+                // Simple person placeholder
+                VStack(spacing: 2) {
+                    Circle()
+                        .fill(Color.pink.opacity(0.8))
+                        .frame(width: 15, height: 15)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.blue.opacity(0.8))
+                        .frame(width: 20, height: 30)
+                }
+            }
         }
     }
 }

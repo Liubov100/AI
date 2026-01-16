@@ -43,7 +43,7 @@ struct GameView: View {
 
             // Player Cat
             BlackCat()
-                .scaleEffect(catController.facingDirection == .left ? CGSize(width: -0.8, height: 0.8) : CGSize(width: 0.8, height: 0.8))
+                .scaleEffect(catController.facingDirection == .left ? CGSize(width: -0.5, height: 0.5) : CGSize(width: 0.5, height: 0.5))
                 .offset(x: catController.position.x, y: catController.position.y)
                 .overlay(
                     catController.currentAction == .hiding ? Color.clear : nil
@@ -222,10 +222,7 @@ struct GameView: View {
             break
         }
 
-        // Defer state changes to avoid publishing during view updates
-        DispatchQueue.main.async {
-            self.checkCollectables()
-        }
+        checkCollectables()
     }
 
     func handleSpecialKeyPress(_ key: KeyEquivalent) {
@@ -244,10 +241,7 @@ struct GameView: View {
             break
         }
 
-        // Defer state changes to avoid publishing during view updates
-        DispatchQueue.main.async {
-            self.checkCollectables()
-        }
+        checkCollectables()
     }
 
     // MARK: - Game Logic
