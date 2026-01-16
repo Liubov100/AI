@@ -36,106 +36,134 @@ class CatController: ObservableObject {
 
     // MARK: - Movement Controls
     func moveLeft(running: Bool = false) {
-        facingDirection = .left
-        let speed = running ? runSpeed : walkSpeed
-        position.x -= speed
-        currentAction = running ? .running : .walking
+        DispatchQueue.main.async {
+            self.facingDirection = .left
+            let speed = running ? self.runSpeed : self.walkSpeed
+            self.position.x -= speed
+            self.currentAction = running ? .running : .walking
+        }
     }
 
     func moveRight(running: Bool = false) {
-        facingDirection = .right
-        let speed = running ? runSpeed : walkSpeed
-        position.x += speed
-        currentAction = running ? .running : .walking
+        DispatchQueue.main.async {
+            self.facingDirection = .right
+            let speed = running ? self.runSpeed : self.walkSpeed
+            self.position.x += speed
+            self.currentAction = running ? .running : .walking
+        }
     }
 
     func moveUp(climbing: Bool = false) {
-        if climbing {
-            position.y -= climbSpeed
-            currentAction = .climbing
-        } else {
-            position.y -= walkSpeed
-            currentAction = .walking
+        DispatchQueue.main.async {
+            if climbing {
+                self.position.y -= self.climbSpeed
+                self.currentAction = .climbing
+            } else {
+                self.position.y -= self.walkSpeed
+                self.currentAction = .walking
+            }
         }
     }
 
     func moveDown() {
-        position.y += walkSpeed
-        currentAction = .walking
+        DispatchQueue.main.async {
+            self.position.y += self.walkSpeed
+            self.currentAction = .walking
+        }
     }
 
     func jump() {
         guard !isJumping else { return }
 
-        isJumping = true
-        currentAction = .jumping
-        verticalVelocity = jumpForce
-        groundLevel = position.y
+        DispatchQueue.main.async {
+            self.isJumping = true
+            self.currentAction = .jumping
+            self.verticalVelocity = self.jumpForce
+            self.groundLevel = self.position.y
 
-        // Start jump physics
-        jumpTimer?.invalidate()
-        jumpTimer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { [weak self] timer in
-            guard let self = self else {
-                timer.invalidate()
-                return
-            }
+            // Start jump physics
+            self.jumpTimer?.invalidate()
+            self.jumpTimer = Timer.scheduledTimer(withTimeInterval: 0.016, repeats: true) { [weak self] timer in
+                guard let self = self else {
+                    timer.invalidate()
+                    return
+                }
 
-            // Apply gravity
-            self.verticalVelocity += self.gravity
+                DispatchQueue.main.async {
+                    // Apply gravity
+                    self.verticalVelocity += self.gravity
 
-            // Update position
-            self.position.y += self.verticalVelocity
+                    // Update position
+                    self.position.y += self.verticalVelocity
 
-            // Check if landed
-            if self.position.y >= self.groundLevel {
-                self.position.y = self.groundLevel
-                self.verticalVelocity = 0
-                self.isJumping = false
-                self.currentAction = .idle
-                timer.invalidate()
+                    // Check if landed
+                    if self.position.y >= self.groundLevel {
+                        self.position.y = self.groundLevel
+                        self.verticalVelocity = 0
+                        self.isJumping = false
+                        self.currentAction = .idle
+                        timer.invalidate()
+                    }
+                }
             }
         }
     }
 
     func toggleCrawl() {
-        isCrawling.toggle()
-        currentAction = isCrawling ? .crawling : .idle
+        DispatchQueue.main.async {
+            self.isCrawling.toggle()
+            self.currentAction = self.isCrawling ? .crawling : .idle
+        }
     }
 
     func startClimbing() {
-        isClimbing = true
-        currentAction = .climbing
+        DispatchQueue.main.async {
+            self.isClimbing = true
+            self.currentAction = .climbing
+        }
     }
 
     func stopClimbing() {
-        isClimbing = false
-        currentAction = .idle
+        DispatchQueue.main.async {
+            self.isClimbing = false
+            self.currentAction = .idle
+        }
     }
 
     func knockOver() {
-        currentAction = .knocking
+        DispatchQueue.main.async {
+            self.currentAction = .knocking
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.currentAction = .idle
         }
     }
 
     func steal() {
-        currentAction = .stealing
+        DispatchQueue.main.async {
+            self.currentAction = .stealing
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.currentAction = .idle
         }
     }
 
     func hideInBox() {
-        currentAction = .hiding
+        DispatchQueue.main.async {
+            self.currentAction = .hiding
+        }
     }
 
     func exitBox() {
-        currentAction = .idle
+        DispatchQueue.main.async {
+            self.currentAction = .idle
+        }
     }
 
     func stopMovement() {
-        currentAction = .idle
+        DispatchQueue.main.async {
+            self.currentAction = .idle
+        }
     }
 
     // MARK: - Collision Detection
