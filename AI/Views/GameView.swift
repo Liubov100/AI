@@ -14,6 +14,7 @@ struct GameView: View {
     @StateObject private var cameraController = CameraController()
     @StateObject private var networkManager = NetworkManager.shared
     @StateObject private var chatManager = ChatManager.shared
+    @StateObject private var eventManager = PlayerEventManager.shared
     @StateObject private var firebaseService = FirebaseService.shared
     @StateObject private var tutorialManager = TutorialManager()
 
@@ -22,6 +23,7 @@ struct GameView: View {
     @State private var showHatCustomization = false
     @State private var showSettings = false
     @State private var showChat = false
+    @State private var showActivityFeed = false
     @State private var use3DCamera = false
     @State private var collectables: [Collectable] = []
     @State private var npcs: [NPC] = []
@@ -29,11 +31,6 @@ struct GameView: View {
     @State private var isShiftPressed = false
     @State private var showLevelUp = false
     @State private var newLevel = 1
-    @State private var showNotification = false
-    @State private var notificationTitle = ""
-    @State private var notificationMessage = ""
-    @State private var notificationIcon = "checkmark.circle.fill"
-    @State private var notificationColor = Color.green
     @State private var previousLevel = 1
 
     var body: some View {
@@ -95,6 +92,9 @@ struct GameView: View {
 
                             // Chat Button
                             ChatButtonView(chatManager: chatManager, showChat: $showChat)
+
+                            // Activity Feed Button
+                            ActivityFeedButton(eventManager: eventManager, showFeed: $showActivityFeed)
                         }
 
                         // Camera Mode Picker (always shown now)
@@ -160,6 +160,23 @@ struct GameView: View {
                 .zIndex(999)
             }
 
+            // Activity Feed
+            if showActivityFeed {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        PlayerActivityFeed(
+                            eventManager: eventManager,
+                            isShowing: $showActivityFeed
+                        )
+                        .padding()
+                    }
+                }
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+                .zIndex(998)
+            }
+
             // Tutorial overlay
             if tutorialManager.isActive {
                 TutorialOverlayView(tutorial: tutorialManager)
@@ -170,17 +187,11 @@ struct GameView: View {
                 LevelUpView(newLevel: newLevel, isShowing: $showLevelUp)
             }
 
-            // Notification toast
-            if showNotification {
+            // Player Event Notification Toast
+            if eventManager.showNotification, let event = eventManager.currentNotification {
                 VStack {
-                    NotificationToast(
-                        title: notificationTitle,
-                        message: notificationMessage,
-                        icon: notificationIcon,
-                        iconColor: notificationColor,
-                        isShowing: $showNotification
-                    )
-                    .padding(.top, 20)
+                    PlayerNotificationToast(event: event)
+                        .padding(.top, 20)
                     Spacer()
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
@@ -193,11 +204,11 @@ struct GameView: View {
                     previousLevel = newValue
                     newLevel = newValue
                     showLevelUp = true
-                    showNotificationMessage(
-                        title: "Level Up!",
-                        message: "You reached level \(newValue)!",
-                        icon: "star.fill",
-                        color: .yellow
+
+                    // Generate player level up event
+                    eventManager.playerLeveledUp(
+                        playerName: gameState.playerStats.catName,
+                        newLevel: newValue
                     )
                 }
             }
@@ -406,14 +417,13 @@ struct GameView: View {
                         gameState.playerStats.eatFish()
                     }
 
-                    // Show notification for collectible
-                    let itemName = collectable.type.rawValue.capitalized
-                    showNotificationMessage(
-                        title: "Collected!",
-                        message: "You found a \(itemName)!",
-                        icon: iconForCollectable(collectable.type),
-                        color: colorForCollectable(collectable.type)
-                    )
+                    // Generate player event for collecting item
+                    if collectable.type == .shiny {
+                        eventManager.playerFoundItem(
+                            playerName: gameState.playerStats.catName,
+                            itemName: "shiny"
+                        )
+                    }
 
                     // Tutorial check
                     tutorialManager.checkAction(.collectItem)
@@ -422,42 +432,6 @@ struct GameView: View {
                 // Save is already scheduled in gameState.collectItem()
                 // No need for additional save here
             }
-        }
-    }
-
-    func showNotificationMessage(title: String, message: String, icon: String, color: Color) {
-        notificationTitle = title
-        notificationMessage = message
-        notificationIcon = icon
-        notificationColor = color
-
-        withAnimation {
-            showNotification = true
-        }
-
-        // Auto-dismiss after 3 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            withAnimation {
-                showNotification = false
-            }
-        }
-    }
-
-    func iconForCollectable(_ type: CollectableType) -> String {
-        switch type {
-        case .shiny: return "sparkles"
-        case .fish: return "fish.fill"
-        case .feather: return "leaf.fill"
-        case .hat: return "crown.fill"
-        }
-    }
-
-    func colorForCollectable(_ type: CollectableType) -> Color {
-        switch type {
-        case .shiny: return .yellow
-        case .fish: return .blue
-        case .feather: return .green
-        case .hat: return .purple
         }
     }
 
