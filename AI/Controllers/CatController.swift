@@ -18,7 +18,6 @@ class CatController: ObservableObject {
     @Published var isClimbing = false
     @Published var facingDirection: Direction = .right
 
-    private var velocity = CGPoint.zero
     private var verticalVelocity: CGFloat = 0
     private var isJumping = false
     private var groundLevel: CGFloat = 0
