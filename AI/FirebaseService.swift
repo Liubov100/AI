@@ -30,7 +30,8 @@ class FirebaseService: ObservableObject {
     // MARK: - Setup
     private func setupVertex() {
         vertex = VertexAI.vertexAI()
-        model = vertex?.generativeModel(modelName: "gemini-1.5-flash")
+        // Using Gemini 1.5 Pro for better quality quest generation
+        model = vertex?.generativeModel(modelName: "gemini-1.5-pro")
     }
 
     // MARK: - Authentication

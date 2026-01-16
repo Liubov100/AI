@@ -8,59 +8,8 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var catPosition = CGPoint(x: 0, y: 0)
-
     var body: some View {
-        ZStack {
-            Color.white
-                .ignoresSafeArea()
-
-            BlackCat()
-                .offset(x: catPosition.x, y: catPosition.y)
-        }
-        .focusable()
-        .onKeyPress(characters: .alphanumerics) { keyPress in
-            handleCharacterPress(keyPress.characters)
-            return .handled
-        }
-        .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow]) { keyPress in
-            handleArrowPress(keyPress.key)
-            return .handled
-        }
-    }
-
-    func handleCharacterPress(_ characters: String) {
-        let moveAmount: CGFloat = 20
-
-        switch characters.lowercased() {
-        case "w":
-            catPosition.y -= moveAmount
-        case "s":
-            catPosition.y += moveAmount
-        case "a":
-            catPosition.x -= moveAmount
-        case "d":
-            catPosition.x += moveAmount
-        default:
-            break
-        }
-    }
-
-    func handleArrowPress(_ key: KeyEquivalent) {
-        let moveAmount: CGFloat = 20
-
-        switch key {
-        case .upArrow:
-            catPosition.y -= moveAmount
-        case .downArrow:
-            catPosition.y += moveAmount
-        case .leftArrow:
-            catPosition.x -= moveAmount
-        case .rightArrow:
-            catPosition.x += moveAmount
-        default:
-            break
-        }
+        GameView()
     }
 }
 
