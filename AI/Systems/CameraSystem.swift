@@ -31,9 +31,9 @@ class CameraController: ObservableObject {
     // MARK: - Camera Updates
     func update(targetPosition: CGPoint, facingDirection: CatController.Direction) {
         let target3D = SCNVector3(
-            x: Float(targetPosition.x),
+            x: CGFloat(targetPosition.x),
             y: 0,
-            z: Float(targetPosition.y)
+            z: CGFloat(targetPosition.y)
         )
 
         self.targetPosition = target3D
@@ -56,13 +56,13 @@ class CameraController: ObservableObject {
 
         switch direction {
         case .right:
-            offset = SCNVector3(x: -cameraDistance, y: cameraHeight, z: 0)
+            offset = SCNVector3(x: CGFloat(-cameraDistance), y: CGFloat(cameraHeight), z: 0)
         case .left:
-            offset = SCNVector3(x: cameraDistance, y: cameraHeight, z: 0)
+            offset = SCNVector3(x: CGFloat(cameraDistance), y: CGFloat(cameraHeight), z: 0)
         case .up:
-            offset = SCNVector3(x: 0, y: cameraHeight, z: cameraDistance)
+            offset = SCNVector3(x: 0, y: CGFloat(cameraHeight), z: CGFloat(cameraDistance))
         case .down:
-            offset = SCNVector3(x: 0, y: cameraHeight, z: -cameraDistance)
+            offset = SCNVector3(x: 0, y: CGFloat(cameraHeight), z: CGFloat(-cameraDistance))
         }
 
         let desiredPosition = SCNVector3(
@@ -90,12 +90,12 @@ class CameraController: ObservableObject {
     private func updateCinematicCamera(target: SCNVector3) {
         // Circular motion around target
         let time = Date().timeIntervalSince1970
-        let angle = Float(time * 0.5)
+        let angle = CGFloat(time * 0.5)
 
         let desiredPosition = SCNVector3(
-            x: target.x + cos(angle) * cameraDistance,
-            y: target.y + cameraHeight,
-            z: target.z + sin(angle) * cameraDistance
+            x: target.x + cos(angle) * CGFloat(cameraDistance),
+            y: target.y + CGFloat(cameraHeight),
+            z: target.z + sin(angle) * CGFloat(cameraDistance)
         )
 
         position = lerpVector(from: position, to: desiredPosition, t: smoothSpeed * 0.5)
@@ -114,16 +114,17 @@ class CameraController: ObservableObject {
     func panCamera(delta: CGPoint) {
         guard cameraMode == .free else { return }
 
-        position.x += Float(delta.x) * 0.1
-        position.z += Float(delta.y) * 0.1
+        position.x += delta.x * 0.1
+        position.z += delta.y * 0.1
     }
 
     // MARK: - Helper Functions
     private func lerpVector(from: SCNVector3, to: SCNVector3, t: Float) -> SCNVector3 {
+        let tCG = CGFloat(t)
         return SCNVector3(
-            x: from.x + (to.x - from.x) * t,
-            y: from.y + (to.y - from.y) * t,
-            z: from.z + (to.z - from.z) * t
+            x: from.x + (to.x - from.x) * tCG,
+            y: from.y + (to.y - from.y) * tCG,
+            z: from.z + (to.z - from.z) * tCG
         )
     }
 }
@@ -161,9 +162,9 @@ struct Scene3DView: View {
         // Add cat
         let catNode = createCatNode()
         catNode.position = SCNVector3(
-            x: Float(catController.position.x),
+            x: CGFloat(catController.position.x),
             y: 0.5,
-            z: Float(catController.position.y)
+            z: CGFloat(catController.position.y)
         )
         scene.rootNode.addChildNode(catNode)
 
@@ -171,9 +172,9 @@ struct Scene3DView: View {
         for collectable in collectables.filter({ !$0.isCollected }) {
             let collectableNode = createCollectableNode(type: collectable.type)
             collectableNode.position = SCNVector3(
-                x: Float(collectable.position.x),
+                x: CGFloat(collectable.position.x),
                 y: 0.5,
-                z: Float(collectable.position.y)
+                z: CGFloat(collectable.position.y)
             )
             scene.rootNode.addChildNode(collectableNode)
         }
@@ -182,9 +183,9 @@ struct Scene3DView: View {
         for object in interactiveObjects {
             let objectNode = createInteractiveObjectNode(type: object.type)
             objectNode.position = SCNVector3(
-                x: Float(object.position.x),
+                x: CGFloat(object.position.x),
                 y: 1,
-                z: Float(object.position.y)
+                z: CGFloat(object.position.y)
             )
             scene.rootNode.addChildNode(objectNode)
         }

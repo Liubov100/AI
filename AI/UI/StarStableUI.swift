@@ -422,7 +422,7 @@ struct RewardItem: View {
 }
 
 // MARK: - Settings Data Model
-struct GameSettings: Codable {
+struct GameSettings: Codable, Equatable {
     var masterVolume: Double = 1.0
     var musicVolume: Double = 0.7
     var sfxVolume: Double = 0.8
