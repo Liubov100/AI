@@ -52,7 +52,7 @@ class PlayerEventManager: ObservableObject {
     private func startEventGeneration() {
         // Generate random player events
         eventTimer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.generateRandomEvent()
             }
         }

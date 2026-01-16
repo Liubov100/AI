@@ -115,7 +115,7 @@ class ChatManager: ObservableObject {
 
     private func startAIChatLoop() {
         chatTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.triggerRandomAIMessage()
             }
         }

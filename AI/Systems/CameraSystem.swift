@@ -130,29 +130,16 @@ class CameraController: ObservableObject {
     }
 }
 
-// MARK: - Scene3D View
-struct Scene3DView: View {
-    @ObservedObject var cameraController: CameraController
-    @ObservedObject var catController: CatController
-    @ObservedObject var networkManager: NetworkManager
-    @Binding var collectables: [Collectable]
-    @Binding var interactiveObjects: [InteractiveObject]
+// MARK: - Scene Manager
+@MainActor
+class SceneManager: ObservableObject {
+    let scene = SCNScene()
+    let cameraNode = SCNNode()
+    private var catNode: SCNNode?
+    private var playerNodes: [String: SCNNode] = [:]
+    private var updateTimer: Timer?
 
-    var body: some View {
-        SceneView(
-            scene: createScene(),
-            pointOfView: createCamera(),
-            options: [.allowsCameraControl, .autoenablesDefaultLighting, .temporalAntialiasingEnabled]
-        )
-        .onAppear {
-            // Initialize camera position
-            cameraController.update(targetPosition: catController.position, facingDirection: catController.facingDirection)
-        }
-    }
-
-    private func createScene() -> SCNScene {
-        let scene = SCNScene()
-
+    func setupScene() {
         // Ground plane
         let ground = SCNNode()
         let groundGeometry = SCNPlane(width: 100, height: 100)
@@ -161,103 +148,80 @@ struct Scene3DView: View {
         ground.eulerAngles = SCNVector3(x: -.pi / 2, y: 0, z: 0)
         scene.rootNode.addChildNode(ground)
 
-        // Add cat
-        let catNode = createCatNode()
-        catNode.position = SCNVector3(
-            x: CGFloat(catController.position.x),
-            y: 0.5,
-            z: CGFloat(catController.position.y)
-        )
-        scene.rootNode.addChildNode(catNode)
-
-        // Add collectables as 3D objects
-        for collectable in collectables.filter({ !$0.isCollected }) {
-            let collectableNode = createCollectableNode(type: collectable.type)
-            collectableNode.position = SCNVector3(
-                x: CGFloat(collectable.position.x),
-                y: 0.5,
-                z: CGFloat(collectable.position.y)
-            )
-            scene.rootNode.addChildNode(collectableNode)
-        }
-
-        // Add interactive objects
-        for object in interactiveObjects {
-            let objectNode = createInteractiveObjectNode(type: object.type)
-            objectNode.position = SCNVector3(
-                x: CGFloat(object.position.x),
-                y: 1,
-                z: CGFloat(object.position.y)
-            )
-            scene.rootNode.addChildNode(objectNode)
-        }
-
-        // Add network players (AI and real players)
-        for player in networkManager.connectedPlayers {
-            let playerNode = createNetworkPlayerNode(player: player)
-            playerNode.position = SCNVector3(
-                x: CGFloat(player.position.x),
-                y: 0.5,
-                z: CGFloat(player.position.y)
-            )
-            scene.rootNode.addChildNode(playerNode)
-        }
-
-        return scene
-    }
-
-    private func createNetworkPlayerNode(player: NetworkPlayer) -> SCNNode {
-        let node = SCNNode()
-        node.name = player.id
-
-        // Body (smaller than local player)
-        let body = SCNBox(width: 0.5, height: 0.35, length: 0.7, chamferRadius: 0.08)
-        body.firstMaterial?.diffuse.contents = NSColor.gray
-        let bodyNode = SCNNode(geometry: body)
-        bodyNode.position = SCNVector3(x: 0, y: 0.175, z: 0)
-        node.addChildNode(bodyNode)
-
-        // Head
-        let head = SCNSphere(radius: 0.2)
-        head.firstMaterial?.diffuse.contents = NSColor.darkGray
-        let headNode = SCNNode(geometry: head)
-        headNode.position = SCNVector3(x: 0, y: 0.4, z: 0.3)
-        node.addChildNode(headNode)
-
-        // Name tag
-        let text = SCNText(string: player.name, extrusionDepth: 0.02)
-        text.font = NSFont.systemFont(ofSize: 0.15)
-        text.firstMaterial?.diffuse.contents = NSColor.white
-        text.firstMaterial?.emission.contents = NSColor.white
-        let textNode = SCNNode(geometry: text)
-        textNode.position = SCNVector3(x: -0.2, y: 0.8, z: 0)
-        textNode.scale = SCNVector3(0.5, 0.5, 0.5)
-        node.addChildNode(textNode)
-
-        // Level badge
-        let levelText = SCNText(string: "Lv.\(player.level)", extrusionDepth: 0.01)
-        levelText.font = NSFont.boldSystemFont(ofSize: 0.12)
-        levelText.firstMaterial?.diffuse.contents = NSColor.yellow
-        let levelNode = SCNNode(geometry: levelText)
-        levelNode.position = SCNVector3(x: -0.15, y: 0.95, z: 0)
-        levelNode.scale = SCNVector3(0.4, 0.4, 0.4)
-        node.addChildNode(levelNode)
-
-        return node
-    }
-
-    private func createCamera() -> SCNNode {
-        let cameraNode = SCNNode()
+        // Setup camera
         let camera = SCNCamera()
-        camera.fieldOfView = cameraController.fov
+        camera.fieldOfView = 60
         camera.zNear = 0.1
         camera.zFar = 1000
         cameraNode.camera = camera
+        cameraNode.position = SCNVector3(x: 0, y: 5, z: 10)
+        scene.rootNode.addChildNode(cameraNode)
 
-        cameraNode.position = cameraController.position
-        cameraNode.look(at: cameraController.lookAt)
+        // Create cat node
+        catNode = createCatNode()
+        catNode?.position = SCNVector3(x: 0, y: 0.5, z: 0)
+        scene.rootNode.addChildNode(catNode!)
 
-        return cameraNode
+        // Add ambient light to reduce flashing
+        let ambientLight = SCNNode()
+        ambientLight.light = SCNLight()
+        ambientLight.light!.type = .ambient
+        ambientLight.light!.color = NSColor(white: 0.6, alpha: 1.0)
+        scene.rootNode.addChildNode(ambientLight)
+
+        // Add directional light (sun)
+        let sunLight = SCNNode()
+        sunLight.light = SCNLight()
+        sunLight.light!.type = .directional
+        sunLight.light!.color = NSColor(white: 0.8, alpha: 1.0)
+        sunLight.light!.castsShadow = true
+        sunLight.position = SCNVector3(x: 10, y: 20, z: 10)
+        sunLight.look(at: SCNVector3Zero)
+        scene.rootNode.addChildNode(sunLight)
+    }
+
+    func updateCatPosition(_ position: CGPoint) {
+        catNode?.position = SCNVector3(
+            x: CGFloat(position.x),
+            y: 0.5,
+            z: CGFloat(position.y)
+        )
+    }
+
+    func updateCamera(_ position: SCNVector3, lookAt: SCNVector3) {
+        cameraNode.position = position
+        cameraNode.look(at: lookAt)
+    }
+
+    func updateNetworkPlayers(_ players: [NetworkPlayer]) {
+        // Remove old player nodes that are no longer connected
+        let playerIds = Set(players.map { $0.id })
+        for (id, node) in playerNodes where !playerIds.contains(id) {
+            node.removeFromParentNode()
+            playerNodes.removeValue(forKey: id)
+        }
+
+        // Update or create player nodes
+        for player in players {
+            if let existingNode = playerNodes[player.id] {
+                // Update position
+                existingNode.position = SCNVector3(
+                    x: CGFloat(player.position.x),
+                    y: 0.5,
+                    z: CGFloat(player.position.y)
+                )
+            } else {
+                // Create new player node
+                let playerNode = createNetworkPlayerNode(player: player)
+                playerNode.position = SCNVector3(
+                    x: CGFloat(player.position.x),
+                    y: 0.5,
+                    z: CGFloat(player.position.y)
+                )
+                scene.rootNode.addChildNode(playerNode)
+                playerNodes[player.id] = playerNode
+            }
+        }
     }
 
     private func createCatNode() -> SCNNode {
@@ -313,76 +277,76 @@ struct Scene3DView: View {
         return node
     }
 
-    private func createCollectableNode(type: CollectableType) -> SCNNode {
+    private func createNetworkPlayerNode(player: NetworkPlayer) -> SCNNode {
         let node = SCNNode()
+        node.name = player.id
 
-        switch type {
-        case .shiny:
-            let star = SCNPyramid(width: 0.3, height: 0.3, length: 0.3)
-            star.firstMaterial?.diffuse.contents = NSColor.yellow
-            star.firstMaterial?.emission.contents = NSColor.yellow.withAlphaComponent(0.5)
-            node.geometry = star
+        // Body (smaller than local player)
+        let body = SCNBox(width: 0.5, height: 0.35, length: 0.7, chamferRadius: 0.08)
+        body.firstMaterial?.diffuse.contents = NSColor.gray
+        let bodyNode = SCNNode(geometry: body)
+        bodyNode.position = SCNVector3(x: 0, y: 0.175, z: 0)
+        node.addChildNode(bodyNode)
 
-        case .fish:
-            let fish = SCNBox(width: 0.3, height: 0.1, length: 0.5, chamferRadius: 0.05)
-            fish.firstMaterial?.diffuse.contents = NSColor.cyan
-            node.geometry = fish
+        // Head
+        let head = SCNSphere(radius: 0.2)
+        head.firstMaterial?.diffuse.contents = NSColor.darkGray
+        let headNode = SCNNode(geometry: head)
+        headNode.position = SCNVector3(x: 0, y: 0.4, z: 0.3)
+        node.addChildNode(headNode)
 
-        case .feather:
-            let feather = SCNCylinder(radius: 0.05, height: 0.4)
-            feather.firstMaterial?.diffuse.contents = NSColor.green
-            node.geometry = feather
+        // Name tag
+        let text = SCNText(string: player.name, extrusionDepth: 0.02)
+        text.font = NSFont.systemFont(ofSize: 0.15)
+        text.firstMaterial?.diffuse.contents = NSColor.white
+        text.firstMaterial?.emission.contents = NSColor.white
+        let textNode = SCNNode(geometry: text)
+        textNode.position = SCNVector3(x: -0.2, y: 0.8, z: 0)
+        textNode.scale = SCNVector3(0.5, 0.5, 0.5)
+        node.addChildNode(textNode)
 
-        case .hat:
-            let hat = SCNCone(topRadius: 0.1, bottomRadius: 0.3, height: 0.4)
-            hat.firstMaterial?.diffuse.contents = NSColor.purple
-            node.geometry = hat
-        }
-
-        // Floating animation
-        let animation = SCNAction.sequence([
-            SCNAction.moveBy(x: 0, y: 0.2, z: 0, duration: 1.0),
-            SCNAction.moveBy(x: 0, y: -0.2, z: 0, duration: 1.0)
-        ])
-        node.runAction(SCNAction.repeatForever(animation))
-
-        return node
-    }
-
-    private func createInteractiveObjectNode(type: ObjectType) -> SCNNode {
-        let node = SCNNode()
-
-        switch type {
-        case .box:
-            let box = SCNBox(width: 0.8, height: 0.8, length: 0.8, chamferRadius: 0.05)
-            box.firstMaterial?.diffuse.contents = NSColor.brown
-            node.geometry = box
-
-        case .trashCan:
-            let can = SCNCylinder(radius: 0.4, height: 1.0)
-            can.firstMaterial?.diffuse.contents = NSColor.gray
-            node.geometry = can
-
-        case .vase:
-            let vase = SCNCylinder(radius: 0.3, height: 0.8)
-            vase.firstMaterial?.diffuse.contents = NSColor.red
-            node.geometry = vase
-
-        case .bird:
-            let bird = SCNSphere(radius: 0.2)
-            bird.firstMaterial?.diffuse.contents = NSColor.gray
-            node.geometry = bird
-
-        default:
-            let placeholder = SCNBox(width: 0.5, height: 0.5, length: 0.5, chamferRadius: 0.1)
-            placeholder.firstMaterial?.diffuse.contents = NSColor.lightGray
-            node.geometry = placeholder
-        }
+        // Level badge
+        let levelText = SCNText(string: "Lv.\(player.level)", extrusionDepth: 0.01)
+        levelText.font = NSFont.boldSystemFont(ofSize: 0.12)
+        levelText.firstMaterial?.diffuse.contents = NSColor.yellow
+        let levelNode = SCNNode(geometry: levelText)
+        levelNode.position = SCNVector3(x: -0.15, y: 0.95, z: 0)
+        levelNode.scale = SCNVector3(0.4, 0.4, 0.4)
+        node.addChildNode(levelNode)
 
         return node
     }
 }
 
+// MARK: - Scene3D View
+struct Scene3DView: View {
+    @ObservedObject var cameraController: CameraController
+    @ObservedObject var catController: CatController
+    @ObservedObject var networkManager: NetworkManager
+    @Binding var collectables: [Collectable]
+    @Binding var interactiveObjects: [InteractiveObject]
+
+    @StateObject private var sceneManager = SceneManager()
+
+    var body: some View {
+        SceneView(
+            scene: sceneManager.scene,
+            pointOfView: sceneManager.cameraNode,
+            options: [.autoenablesDefaultLighting, .temporalAntialiasingEnabled]
+        )
+        .onAppear {
+            sceneManager.setupScene()
+            sceneManager.startUpdateLoop(
+                catController: catController,
+                cameraController: cameraController,
+                networkManager: networkManager
+            )
+        }
+        .onDisappear {
+            sceneManager.stopUpdateLoop()
+        }
+    }
+}
 // MARK: - Camera Mode Picker
 struct CameraModePickerView: View {
     @ObservedObject var cameraController: CameraController

@@ -12,8 +12,8 @@ struct ChatView: View {
     @ObservedObject var chatManager: ChatManager
     @Binding var isShowing: Bool
     @State private var messageText = ""
-    @State private var localPlayerId: String
-    @State private var localPlayerName: String
+    let localPlayerId: String
+    let localPlayerName: String
 
     var body: some View {
         VStack(spacing: 0) {

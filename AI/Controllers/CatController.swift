@@ -11,7 +11,7 @@ import Combine
 
 @MainActor
 class CatController: ObservableObject {
-    @Published var position = CGPoint(x: 0, y: 0)
+    @Published var position: CGPoint
     @Published var currentAction: CatAction = .idle
     @Published var isRunning = false
     @Published var isCrawling = false
@@ -29,6 +29,11 @@ class CatController: ObservableObject {
     private let climbSpeed = GameConfig.Physics.climbSpeed
 
     private var jumpTask: Task<Void, Never>?
+
+    init() {
+        // Spawn at the network spawn location
+        self.position = NetworkManager.spawnLocation
+    }
 
     enum Direction {
         case left, right, up, down
@@ -153,9 +158,10 @@ class CatController: ObservableObject {
     }
 
     // MARK: - Collision Detection
-    func isNearObject(objectPosition: CGPoint, threshold: CGFloat = GameConfig.Gameplay.interactionRadius) -> Bool {
+    func isNearObject(objectPosition: CGPoint, threshold: CGFloat? = nil) -> Bool {
+        let actualThreshold = threshold ?? GameConfig.Gameplay.interactionRadius
         let distance = sqrt(pow(position.x - objectPosition.x, 2) + pow(position.y - objectPosition.y, 2))
-        return distance < threshold
+        return distance < actualThreshold
     }
 
     func canClimbHere(obstacles: [CGRect]) -> Bool {

@@ -206,10 +206,7 @@ struct GameView: View {
                     showLevelUp = true
 
                     // Generate player level up event
-                    eventManager.playerLeveledUp(
-                        playerName: gameState.playerStats.catName,
-                        newLevel: newValue
-                    )
+                    eventManager.playerLeveledUp(level: newValue)
                 }
             }
         }
@@ -325,70 +322,74 @@ struct GameView: View {
     func handleCharacterPress(_ characters: String) {
         let char = characters.lowercased()
 
-        switch char {
-        case "w":
-            catController.moveUp(climbing: catController.isClimbing)
-            tutorialManager.checkAction(.moveWithWASD)
-            updateCamera()
-        case "s":
-            catController.moveDown()
-            tutorialManager.checkAction(.moveWithWASD)
-            updateCamera()
-        case "a":
-            catController.moveLeft(running: isShiftPressed)
-            tutorialManager.checkAction(.moveWithWASD)
-            updateCamera()
-        case "d":
-            catController.moveRight(running: isShiftPressed)
-            tutorialManager.checkAction(.moveWithWASD)
-            updateCamera()
-        case "c":
-            catController.toggleCrawl()
-        case "e":
-            interactWithNearbyObject()
-        case "q":
-            showQuestPanel.toggle()
-            tutorialManager.checkAction(.pressQ)
-        case "i":
-            showInventory.toggle()
-            tutorialManager.checkAction(.pressI)
-        default:
-            break
-        }
+        Task { @MainActor in
+            switch char {
+            case "w":
+                catController.moveUp(climbing: catController.isClimbing)
+                tutorialManager.checkAction(.moveWithWASD)
+                updateCamera()
+            case "s":
+                catController.moveDown()
+                tutorialManager.checkAction(.moveWithWASD)
+                updateCamera()
+            case "a":
+                catController.moveLeft(running: isShiftPressed)
+                tutorialManager.checkAction(.moveWithWASD)
+                updateCamera()
+            case "d":
+                catController.moveRight(running: isShiftPressed)
+                tutorialManager.checkAction(.moveWithWASD)
+                updateCamera()
+            case "c":
+                catController.toggleCrawl()
+            case "e":
+                interactWithNearbyObject()
+            case "q":
+                showQuestPanel.toggle()
+                tutorialManager.checkAction(.pressQ)
+            case "i":
+                showInventory.toggle()
+                tutorialManager.checkAction(.pressI)
+            default:
+                break
+            }
 
-        checkCollectables()
+            checkCollectables()
+        }
     }
 
     func handleSpecialKeyPress(_ key: KeyEquivalent) {
-        switch key {
-        case .upArrow:
-            catController.moveUp(climbing: catController.isClimbing)
-            tutorialManager.checkAction(.moveWithWASD)
-            updateCamera()
-        case .downArrow:
-            catController.moveDown()
-            tutorialManager.checkAction(.moveWithWASD)
-            updateCamera()
-        case .leftArrow:
-            catController.moveLeft(running: isShiftPressed)
-            tutorialManager.checkAction(.moveWithWASD)
-            updateCamera()
-        case .rightArrow:
-            catController.moveRight(running: isShiftPressed)
-            tutorialManager.checkAction(.moveWithWASD)
-            updateCamera()
-        case .space:
-            catController.jump()
-            tutorialManager.checkAction(.pressSpace)
-            updateCamera()
-        case .escape:
-            showSettings.toggle()
-            return // Don't check collectables when opening settings
-        default:
-            break
-        }
+        Task { @MainActor in
+            switch key {
+            case .upArrow:
+                catController.moveUp(climbing: catController.isClimbing)
+                tutorialManager.checkAction(.moveWithWASD)
+                updateCamera()
+            case .downArrow:
+                catController.moveDown()
+                tutorialManager.checkAction(.moveWithWASD)
+                updateCamera()
+            case .leftArrow:
+                catController.moveLeft(running: isShiftPressed)
+                tutorialManager.checkAction(.moveWithWASD)
+                updateCamera()
+            case .rightArrow:
+                catController.moveRight(running: isShiftPressed)
+                tutorialManager.checkAction(.moveWithWASD)
+                updateCamera()
+            case .space:
+                catController.jump()
+                tutorialManager.checkAction(.pressSpace)
+                updateCamera()
+            case .escape:
+                showSettings.toggle()
+                return // Don't check collectables when opening settings
+            default:
+                break
+            }
 
-        checkCollectables()
+            checkCollectables()
+        }
     }
 
     // MARK: - Camera Update
@@ -419,10 +420,7 @@ struct GameView: View {
 
                     // Generate player event for collecting item
                     if collectable.type == .shiny {
-                        eventManager.playerFoundItem(
-                            playerName: gameState.playerStats.catName,
-                            itemName: "shiny"
-                        )
+                        eventManager.playerFoundItem(itemType: "shiny", count: 1)
                     }
 
                     // Tutorial check

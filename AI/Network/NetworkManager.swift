@@ -9,7 +9,7 @@ import Foundation
 import Combine
 
 // MARK: - Network Player
-struct NetworkPlayer: Identifiable, Codable {
+struct NetworkPlayer: Identifiable, Codable, Equatable {
     let id: String
     var name: String
     var position: CGPoint
@@ -18,6 +18,17 @@ struct NetworkPlayer: Identifiable, Codable {
     var level: Int
     var isAI: Bool
     var lastUpdate: Date
+
+    static func == (lhs: NetworkPlayer, rhs: NetworkPlayer) -> Bool {
+        lhs.id == rhs.id &&
+        lhs.name == rhs.name &&
+        lhs.position == rhs.position &&
+        lhs.facingDirection == rhs.facingDirection &&
+        lhs.currentAction == rhs.currentAction &&
+        lhs.level == rhs.level &&
+        lhs.isAI == rhs.isAI
+        // Ignore lastUpdate for equality comparison
+    }
 }
 
 // MARK: - Network Manager
@@ -32,6 +43,9 @@ class NetworkManager: ObservableObject {
     private var updateTimer: Timer?
     private let maxAIPlayers = 5
 
+    // Spawn location - all players spawn here
+    static let spawnLocation = CGPoint(x: 0, y: 0)
+
     private init() {
         self.localPlayerId = UUID().uuidString
         startAIPlayers()
@@ -39,21 +53,26 @@ class NetworkManager: ObservableObject {
 
     // MARK: - AI Player Management
     func startAIPlayers() {
-        // Spawn AI players in different locations
+        // Spawn AI players near spawn location in a circle pattern
         let aiNames = ["Shadow", "Whiskers", "Mittens", "Luna", "Felix"]
-        let startPositions = [
-            CGPoint(x: 100, y: 100),
-            CGPoint(x: -100, y: -100),
-            CGPoint(x: 150, y: -50),
-            CGPoint(x: -120, y: 80),
-            CGPoint(x: 50, y: -150)
-        ]
+        let spawnRadius: CGFloat = 30 // Players spawn in a 30-unit radius
 
         for i in 0..<maxAIPlayers {
+            // Calculate position in a circle around spawn
+            let angle = (CGFloat(i) / CGFloat(maxAIPlayers)) * 2 * .pi
+            let offset = CGPoint(
+                x: cos(angle) * spawnRadius,
+                y: sin(angle) * spawnRadius
+            )
+            let spawnPosition = CGPoint(
+                x: NetworkManager.spawnLocation.x + offset.x,
+                y: NetworkManager.spawnLocation.y + offset.y
+            )
+
             let aiPlayer = NetworkPlayer(
                 id: "AI_\(i)",
                 name: aiNames[i],
-                position: startPositions[i],
+                position: spawnPosition,
                 facingDirection: "right",
                 currentAction: "idle",
                 level: Int.random(in: 1...10),
@@ -70,7 +89,7 @@ class NetworkManager: ObservableObject {
 
     private func startAIUpdateLoop() {
         updateTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.updateAIPlayers()
             }
         }
