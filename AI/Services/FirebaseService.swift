@@ -215,7 +215,6 @@ extension FirebaseService {
 
                 return try parseQuestFromAI(text: text, context: context)
             } catch {
-                print("⚠️ AI generation failed: \(error). Using fallback.")
                 return generateFallbackQuest(context: context)
             }
         }
@@ -225,7 +224,6 @@ extension FirebaseService {
         do {
             return try await OfflineAIService.shared.generateQuest(context: context)
         } catch {
-            print("⚠️ Offline AI failed: \(error). Using fallback.")
             return generateFallbackQuest(context: context)
         }
     }

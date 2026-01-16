@@ -282,10 +282,9 @@ struct GameView: View {
                 // Save AI-generated quest to Firebase
                 if quest.aiGenerated {
                     try? await firebaseService.saveQuest(quest)
-                    print("✅ AI quest saved to Firebase: \(quest.title)")
                 }
             } catch {
-                print("Failed to generate quest: \(error)")
+                // Failed to generate AI quest; fallback below
                 // Fallback to manual quest
                 let fallbackQuest = Quest(
                     id: UUID().uuidString,
