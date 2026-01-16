@@ -224,6 +224,26 @@ class SceneManager: ObservableObject {
         }
     }
 
+    func startUpdateLoop(catController: CatController, cameraController: CameraController, networkManager: NetworkManager) {
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self = self else { return }
+                self.updateCatPosition(catController.position)
+                self.updateCamera(cameraController.position, lookAt: cameraController.lookAt)
+                self.updateNetworkPlayers(networkManager.connectedPlayers)
+            }
+        }
+    }
+
+    func stopUpdateLoop() {
+        updateTimer?.invalidate()
+        updateTimer = nil
+    }
+
+    deinit {
+        updateTimer?.invalidate()
+    }
+
     private func createCatNode() -> SCNNode {
         let node = SCNNode()
 
