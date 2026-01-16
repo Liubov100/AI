@@ -11,9 +11,10 @@ struct ContentView: View {
     var body: some View {
         
         HStack {
-            Text("Hello, AI!")
-            
-            Text("Welcome to SwiftUI.")
+           
+            Button("Hello, AI!") {
+                print("Button tapped!")
+            }
         }
     }
 }
