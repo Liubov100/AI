@@ -430,6 +430,7 @@ struct CameraModePickerView: View {
     Scene3DView(
         cameraController: CameraController(),
         catController: CatController(),
+        networkManager: NetworkManager.shared,
         collectables: .constant([]),
         interactiveObjects: .constant([])
     )
