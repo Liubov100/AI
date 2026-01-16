@@ -212,10 +212,16 @@ struct GameView: View {
         }
         .focusable()
         .onKeyPress(characters: .alphanumerics) { keyPress in
+            // Don't capture input if chat is open
+            guard !showChat else { return .ignored }
             handleCharacterPress(keyPress.characters)
             return .handled
         }
         .onKeyPress(keys: [.upArrow, .downArrow, .leftArrow, .rightArrow, .space, .escape]) { keyPress in
+            // Don't capture input if chat is open (except Escape)
+            if showChat && keyPress.key != .escape {
+                return .ignored
+            }
             handleSpecialKeyPress(keyPress.key)
             return .handled
         }

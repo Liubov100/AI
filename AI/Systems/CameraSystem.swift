@@ -132,12 +132,15 @@ class CameraController: ObservableObject {
 
 // MARK: - Scene Manager
 @MainActor
-class SceneManager: ObservableObject {
+class SceneManager: NSObject, ObservableObject, SCNSceneRendererDelegate {
     let scene = SCNScene()
     let cameraNode = SCNNode()
     private var catNode: SCNNode?
     private var playerNodes: [String: SCNNode] = [:]
-    private var updateTimer: Timer?
+
+    private weak var catController: CatController?
+    private weak var cameraController: CameraController?
+    private weak var networkManager: NetworkManager?
 
     func setupScene() {
         // Ground plane
@@ -225,23 +228,28 @@ class SceneManager: ObservableObject {
     }
 
     func startUpdateLoop(catController: CatController, cameraController: CameraController, networkManager: NetworkManager) {
-        updateTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30.0, repeats: true) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                self.updateCatPosition(catController.position)
-                self.updateCamera(cameraController.position, lookAt: cameraController.lookAt)
-                self.updateNetworkPlayers(networkManager.connectedPlayers)
-            }
-        }
+        self.catController = catController
+        self.cameraController = cameraController
+        self.networkManager = networkManager
     }
 
     func stopUpdateLoop() {
-        updateTimer?.invalidate()
-        updateTimer = nil
+        catController = nil
+        cameraController = nil
+        networkManager = nil
     }
 
-    deinit {
-        updateTimer?.invalidate()
+    // SCNSceneRendererDelegate method - called every frame
+    nonisolated func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
+        Task { @MainActor in
+            guard let catController = catController,
+                  let cameraController = cameraController,
+                  let networkManager = networkManager else { return }
+
+            updateCatPosition(catController.position)
+            updateCamera(cameraController.position, lookAt: cameraController.lookAt)
+            updateNetworkPlayers(networkManager.connectedPlayers)
+        }
     }
 
     private func createCatNode() -> SCNNode {
@@ -352,7 +360,8 @@ struct Scene3DView: View {
         SceneView(
             scene: sceneManager.scene,
             pointOfView: sceneManager.cameraNode,
-            options: [.autoenablesDefaultLighting, .temporalAntialiasingEnabled]
+            options: [.autoenablesDefaultLighting, .temporalAntialiasingEnabled],
+            delegate: sceneManager
         )
         .onAppear {
             sceneManager.setupScene()

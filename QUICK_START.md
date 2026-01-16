@@ -110,6 +110,13 @@ They're dynamic and scale with your progress!
 - City environment is basic (2D shapes) - customize as needed
 - Fast travel system defined but not fully implemented in UI
 
+## ⚠️ Expected Warnings (Safe to Ignore)
+
+If you haven't set up Firebase, you'll see these errors in the console:
+- `Firebase authentication error: Network error` - This is normal! The game works offline.
+- `networkd_settings_read_from_file` - macOS sandbox warning, doesn't affect gameplay
+- These warnings don't prevent the game from running
+
 ## 🎨 Customization Ideas
 
 Want to make it yours? Try:

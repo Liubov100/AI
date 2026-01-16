@@ -14,6 +14,7 @@ struct ChatView: View {
     @State private var messageText = ""
     let localPlayerId: String
     let localPlayerName: String
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -61,6 +62,7 @@ struct ChatView: View {
             HStack {
                 TextField("Type a message...", text: $messageText)
                     .textFieldStyle(.roundedBorder)
+                    .focused($isTextFieldFocused)
                     .onSubmit {
                         sendMessage()
                     }
@@ -83,6 +85,10 @@ struct ChatView: View {
         .shadow(radius: 10)
         .onAppear {
             chatManager.markAsRead()
+            // Auto-focus the text field when chat opens
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isTextFieldFocused = true
+            }
         }
     }
 
