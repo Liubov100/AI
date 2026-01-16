@@ -7,129 +7,193 @@
 
 import Foundation
 
-// Lightweight Firebase-backed storage adapter.
-// This file replaces previous UserDefaults-backed local storage and now delegates
-// persistence to `FirebaseService`. Methods provide both fire-and-forget
-// synchronous wrappers and async helpers where appropriate.
 class LocalStorageService {
     static let shared = LocalStorageService()
 
+    private let defaults = UserDefaults.standard
+    private let firebaseService = FirebaseService.shared
+
     private init() {}
 
-    // MARK: - Save Methods (fire-and-forget)
+    // MARK: - Save Methods (with offline fallback)
 
     func savePlayerStats(_ stats: PlayerStats) {
-        Task { await savePlayerStatsAsync(stats) }
+        Task {
+            do {
+                try await firebaseService.savePlayerStats(stats)
+            } catch {
+                savePlayerStatsLocally(stats)
+            }
+        }
     }
 
     func saveInventory(_ inventory: Inventory) {
-        Task { await saveInventoryAsync(inventory) }
+        Task {
+            do {
+                try await firebaseService.saveInventory(inventory)
+            } catch {
+                saveInventoryLocally(inventory)
+            }
+        }
     }
 
     func saveQuests(_ quests: [Quest]) {
-        Task { await saveQuestsAsync(quests) }
+        Task {
+            do {
+                for quest in quests {
+                    try await firebaseService.saveQuest(quest)
+                }
+            } catch {
+                saveQuestsLocally(quests)
+            }
+        }
     }
 
     func saveSettings(_ settings: GameSettings) {
-        Task { await saveSettingsAsync(settings) }
+        Task {
+            do {
+                try await firebaseService.saveSettings(settings)
+            } catch {
+                saveSettingsLocally(settings)
+            }
+        }
     }
 
     func saveTutorialProgress(completed: Bool) {
-        Task { await saveTutorialProgressAsync(completed: completed) }
+        Task {
+            do {
+                try await firebaseService.saveTutorialProgress(completed: completed)
+            } catch {
+                defaults.set(completed, forKey: "tutorialCompleted")
+            }
+        }
     }
 
     func saveCatPosition(_ position: CGPoint) {
-        Task { await saveCatPositionAsync(position) }
+        Task {
+            do {
+                try await firebaseService.saveCatPosition(position)
+            } catch {
+                saveCatPositionLocally(position)
+            }
+        }
     }
 
     func saveEquippedHat(_ hatId: String?) {
-        Task { await saveEquippedHatAsync(hatId) }
-    }
-
-    // MARK: - Async helpers
-
-    func savePlayerStatsAsync(_ stats: PlayerStats) async {
-        // Try to merge by loading current inventory from Firebase first
-        if let (_, inventory, _) = try? await FirebaseService.shared.loadGameState() {
-            try? await FirebaseService.shared.saveGameState(stats: stats, inventory: inventory)
-        } else {
-            try? await FirebaseService.shared.saveGameState(stats: stats, inventory: Inventory())
-        }
-    }
-
-    func saveInventoryAsync(_ inventory: Inventory) async {
-        if let (playerStats, _, _) = try? await FirebaseService.shared.loadGameState() {
-            try? await FirebaseService.shared.saveGameState(stats: playerStats, inventory: inventory)
-        } else {
-            try? await FirebaseService.shared.saveGameState(stats: PlayerStats(), inventory: inventory)
-        }
-    }
-
-    func saveQuestsAsync(_ quests: [Quest]) async {
-        for quest in quests {
-            try? await FirebaseService.shared.saveQuest(quest)
-        }
-    }
-
-    func saveSettingsAsync(_ settings: GameSettings) async {
-        try? await FirebaseService.shared.saveSettings(settings)
-    }
-
-    func saveTutorialProgressAsync(completed: Bool) async {
-        try? await FirebaseService.shared.saveTutorialProgress(completed: completed)
-    }
-
-    func saveCatPositionAsync(_ position: CGPoint) async {
-        // Save minimal position data under gameState document if available
-        if let (playerStats, inventory, _) = try? await FirebaseService.shared.loadGameState() {
-            // Use the GameState save that accepts full GameState if needed
-            // Construct a temporary GameState only if required elsewhere; here we update stats/inventory snapshot
-            try? await FirebaseService.shared.saveGameState(stats: playerStats, inventory: inventory)
-        }
-    }
-
-    func saveEquippedHatAsync(_ hatId: String?) async {
-        if let (playerStats, inventory, _) = try? await FirebaseService.shared.loadGameState() {
-            // save equipped hat id via the full gameState API
-            let dummyState = GameState()
-            dummyState.playerStats = playerStats
-            dummyState.inventory = inventory
-            if let hatId = hatId {
-                dummyState.equippedHat = Hat(id: hatId, name: "", cost: 0, description: "", isUnlocked: true)
+        Task {
+            do {
+                try await firebaseService.saveEquippedHat(hatId)
+            } catch {
+                defaults.set(hatId, forKey: "equippedHatId")
             }
-            try? await FirebaseService.shared.saveGameState(dummyState)
         }
-    }
-
-    // MARK: - Load Helpers (async)
-
-    func loadGameStateAsync() async -> (PlayerStats?, Inventory?, CGPoint?, String?) {
-        if let (stats, inventory, equippedHatId) = try? await FirebaseService.shared.loadGameState() {
-            return (stats, inventory, nil, equippedHatId)
-        }
-        return (nil, nil, nil, nil)
-    }
-
-    // Keep simple synchronous stubs for compatibility (return nil/defaults)
-    func loadPlayerStats() -> PlayerStats? { return nil }
-    func loadInventory() -> Inventory? { return nil }
-    func loadQuests() -> [Quest]? { return nil }
-    func loadSettings() -> GameSettings? { return nil }
-    func loadTutorialProgress() -> Bool { return false }
-    func loadCatPosition() -> CGPoint? { return nil }
-    func loadEquippedHat() -> String? { return nil }
-
-    // MARK: - Clear / Sync Helpers
-    func clearAll() {
-        // No-op for Firebase-backed service; removing local-only data.
     }
 
     func saveGameState(stats: PlayerStats, inventory: Inventory, catPosition: CGPoint, equippedHat: String?) {
         Task {
-            try? await FirebaseService.shared.saveGameState(stats: stats, inventory: inventory)
-            if equippedHat != nil {
-                try? await FirebaseService.shared.saveGameState(stats: stats, inventory: inventory)
+            do {
+                try await firebaseService.saveGameState(stats: stats, inventory: inventory)
+                try await firebaseService.saveCatPosition(catPosition)
+                if let hatId = equippedHat {
+                    try await firebaseService.saveEquippedHat(hatId)
+                }
+            } catch {
+                savePlayerStatsLocally(stats)
+                saveInventoryLocally(inventory)
+                saveCatPositionLocally(catPosition)
+                defaults.set(equippedHat, forKey: "equippedHatId")
             }
         }
+    }
+
+    // MARK: - Local Storage Fallback (UserDefaults)
+
+    private func savePlayerStatsLocally(_ stats: PlayerStats) {
+        if let encoded = try? JSONEncoder().encode(stats) {
+            defaults.set(encoded, forKey: "playerStats")
+        }
+    }
+
+    private func saveInventoryLocally(_ inventory: Inventory) {
+        if let encoded = try? JSONEncoder().encode(inventory) {
+            defaults.set(encoded, forKey: "inventory")
+        }
+    }
+
+    private func saveQuestsLocally(_ quests: [Quest]) {
+        if let encoded = try? JSONEncoder().encode(quests) {
+            defaults.set(encoded, forKey: "quests")
+        }
+    }
+
+    private func saveSettingsLocally(_ settings: GameSettings) {
+        if let encoded = try? JSONEncoder().encode(settings) {
+            defaults.set(encoded, forKey: "settings")
+        }
+    }
+
+    private func saveCatPositionLocally(_ position: CGPoint) {
+        let positionDict = ["x": position.x, "y": position.y]
+        defaults.set(positionDict, forKey: "catPosition")
+    }
+
+    // MARK: - Load Helpers (with Firebase priority, fallback to local)
+
+    func loadGameStateAsync() async -> (PlayerStats?, Inventory?, CGPoint?, String?) {
+        if let (stats, inventory, equippedHatId) = try? await firebaseService.loadGameState() {
+            return (stats, inventory, nil, equippedHatId)
+        }
+
+        // Fallback to local storage
+        let stats = loadPlayerStats()
+        let inventory = loadInventory()
+        let position = loadCatPosition()
+        let hatId = loadEquippedHat()
+
+        return (stats, inventory, position, hatId)
+    }
+
+    // MARK: - Synchronous Load Methods (local only)
+
+    func loadPlayerStats() -> PlayerStats? {
+        guard let data = defaults.data(forKey: "playerStats") else { return nil }
+        return try? JSONDecoder().decode(PlayerStats.self, from: data)
+    }
+
+    func loadInventory() -> Inventory? {
+        guard let data = defaults.data(forKey: "inventory") else { return nil }
+        return try? JSONDecoder().decode(Inventory.self, from: data)
+    }
+
+    func loadQuests() -> [Quest]? {
+        guard let data = defaults.data(forKey: "quests") else { return nil }
+        return try? JSONDecoder().decode([Quest].self, from: data)
+    }
+
+    func loadSettings() -> GameSettings? {
+        guard let data = defaults.data(forKey: "settings") else { return nil }
+        return try? JSONDecoder().decode(GameSettings.self, from: data)
+    }
+
+    func loadTutorialProgress() -> Bool {
+        return defaults.bool(forKey: "tutorialCompleted")
+    }
+
+    func loadCatPosition() -> CGPoint? {
+        guard let dict = defaults.dictionary(forKey: "catPosition"),
+              let x = dict["x"] as? CGFloat,
+              let y = dict["y"] as? CGFloat else { return nil }
+        return CGPoint(x: x, y: y)
+    }
+
+    func loadEquippedHat() -> String? {
+        return defaults.string(forKey: "equippedHatId")
+    }
+
+    // MARK: - Clear All Data
+
+    func clearAll() {
+        let keys = ["playerStats", "inventory", "quests", "settings", "tutorialCompleted", "catPosition", "equippedHatId"]
+        keys.forEach { defaults.removeObject(forKey: $0) }
     }
 }

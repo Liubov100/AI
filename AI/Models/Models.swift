@@ -19,6 +19,9 @@ class GameState: ObservableObject {
     @Published var discoveredLocations: [FastTravelPoint] = []
     @Published var equippedHat: Hat?
 
+    private var saveTask: Task<Void, Never>?
+    private var pendingSave = false
+
     func collectItem(_ item: Collectable) {
         inventory.add(item)
         checkQuestProgress(for: item)
@@ -34,10 +37,8 @@ class GameState: ObservableObject {
         case .hat:
             playerStats.gainXP(amount: 50)
         }
-        // Persist changes to Firebase (async)
-        Task {
-            try? await FirebaseService.shared.saveGameState(stats: playerStats, inventory: inventory)
-        }
+
+        scheduleSave()
     }
 
     func checkQuestProgress(for item: Collectable) {
@@ -58,11 +59,37 @@ class GameState: ObservableObject {
             let xpReward = 50 + (quest.objectives.count * 25)
             playerStats.gainXP(amount: xpReward)
             playerStats.addCurrency(shillings: 100 + (quest.objectives.count * 50))
-            // Persist changes to Firebase (async)
+
             Task {
-                try? await FirebaseService.shared.saveGameState(stats: playerStats, inventory: inventory)
                 try? await FirebaseService.shared.saveQuest(quests[index])
             }
+
+            scheduleSave()
+        }
+    }
+
+    // Debounced save to avoid excessive Firebase writes
+    func scheduleSave() {
+        pendingSave = true
+
+        saveTask?.cancel()
+        saveTask = Task {
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 second debounce
+
+            guard !Task.isCancelled, pendingSave else { return }
+
+            pendingSave = false
+            try? await FirebaseService.shared.saveGameState(stats: playerStats, inventory: inventory)
+        }
+    }
+
+    // Force immediate save (for important state changes)
+    func saveImmediately() {
+        saveTask?.cancel()
+        pendingSave = false
+
+        Task {
+            try? await FirebaseService.shared.saveGameState(stats: playerStats, inventory: inventory)
         }
     }
 }

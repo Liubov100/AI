@@ -392,13 +392,8 @@ struct GameView: View {
                     tutorialManager.checkAction(.collectItem)
                 }
 
-                // Save progress to Firebase (can run outside the deferred UI mutation)
-                Task {
-                    try? await firebaseService.saveGameState(
-                        stats: gameState.playerStats,
-                        inventory: gameState.inventory
-                    )
-                }
+                // Save is already scheduled in gameState.collectItem()
+                // No need for additional save here
             }
         }
     }
@@ -459,26 +454,17 @@ struct GameView: View {
         case .vase:
             catController.knockOver()
             gameState.playerStats.itemsKnockedOver += 1
-            Task {
-                try? await firebaseService.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
-            }
         case .person:
             gameState.playerStats.peopleTripped += 1
-            Task {
-                try? await firebaseService.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
-            }
         case .bird:
             gameState.playerStats.birdsChased += 1
-            Task {
-                try? await firebaseService.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
-            }
         default:
             break
         }
         object.isInteracted = true
-        Task {
-            try? await firebaseService.saveGameState(stats: gameState.playerStats, inventory: gameState.inventory)
-        }
+
+        // Use debounced save from GameState
+        gameState.scheduleSave()
     }
 
     func findNearbyInteractable() -> String? {

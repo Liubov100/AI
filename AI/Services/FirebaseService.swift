@@ -51,12 +51,14 @@ class FirebaseService: ObservableObject {
     // MARK: - Authentication
     func authenticateAnonymously() {
         auth.signInAnonymously { [weak self] result, error in
-            if error != nil {
+            if let error = error {
+                print("Firebase authentication error: \(error.localizedDescription)")
                 return
             }
             DispatchQueue.main.async {
                 self?.isAuthenticated = true
                 self?.currentUserId = result?.user.uid
+                print("Firebase authenticated with user ID: \(result?.user.uid ?? "unknown")")
             }
         }
     }
@@ -78,15 +80,71 @@ class FirebaseService: ObservableObject {
         try await db.collection("gameStates").document(userId).setData(data, merge: true)
     }
 
-    // Overload for just stats and inventory
+    // Overload for just stats and inventory - uses merge to avoid overwriting other fields
     func saveGameState(stats: PlayerStats, inventory: Inventory) async throws {
         guard let userId = currentUserId else {
-            return // Don't throw error, just save locally
+            throw FirebaseError.notAuthenticated
         }
 
         let data: [String: Any] = [
             "playerStats": try JSONEncoder().encode(stats).base64EncodedString(),
             "inventory": try JSONEncoder().encode(inventory).base64EncodedString(),
+            "lastUpdated": FieldValue.serverTimestamp()
+        ]
+
+        try await db.collection("gameStates").document(userId).setData(data, merge: true)
+    }
+
+    // Save only player stats
+    func savePlayerStats(_ stats: PlayerStats) async throws {
+        guard let userId = currentUserId else {
+            throw FirebaseError.notAuthenticated
+        }
+
+        let data: [String: Any] = [
+            "playerStats": try JSONEncoder().encode(stats).base64EncodedString(),
+            "lastUpdated": FieldValue.serverTimestamp()
+        ]
+
+        try await db.collection("gameStates").document(userId).setData(data, merge: true)
+    }
+
+    // Save only inventory
+    func saveInventory(_ inventory: Inventory) async throws {
+        guard let userId = currentUserId else {
+            throw FirebaseError.notAuthenticated
+        }
+
+        let data: [String: Any] = [
+            "inventory": try JSONEncoder().encode(inventory).base64EncodedString(),
+            "lastUpdated": FieldValue.serverTimestamp()
+        ]
+
+        try await db.collection("gameStates").document(userId).setData(data, merge: true)
+    }
+
+    // Save only cat position
+    func saveCatPosition(_ position: CGPoint) async throws {
+        guard let userId = currentUserId else {
+            throw FirebaseError.notAuthenticated
+        }
+
+        let data: [String: Any] = [
+            "catPosition": ["x": position.x, "y": position.y],
+            "lastUpdated": FieldValue.serverTimestamp()
+        ]
+
+        try await db.collection("gameStates").document(userId).setData(data, merge: true)
+    }
+
+    // Save only equipped hat
+    func saveEquippedHat(_ hatId: String?) async throws {
+        guard let userId = currentUserId else {
+            throw FirebaseError.notAuthenticated
+        }
+
+        let data: [String: Any] = [
+            "equippedHatId": hatId ?? "",
             "lastUpdated": FieldValue.serverTimestamp()
         ]
 
@@ -385,15 +443,27 @@ enum FirebaseError: LocalizedError {
     case notAuthenticated
     case aiNotInitialized
     case invalidAIResponse
+    case saveFailed(underlying: Error)
+    case loadFailed(underlying: Error)
+    case encodingFailed
+    case decodingFailed
 
     var errorDescription: String? {
         switch self {
         case .notAuthenticated:
-            return "User is not authenticated"
+            return "User is not authenticated. Please wait for authentication to complete."
         case .aiNotInitialized:
             return "AI service is not initialized"
         case .invalidAIResponse:
             return "Invalid response from AI"
+        case .saveFailed(let error):
+            return "Failed to save data to Firebase: \(error.localizedDescription)"
+        case .loadFailed(let error):
+            return "Failed to load data from Firebase: \(error.localizedDescription)"
+        case .encodingFailed:
+            return "Failed to encode data for storage"
+        case .decodingFailed:
+            return "Failed to decode data from storage"
         }
     }
 }
