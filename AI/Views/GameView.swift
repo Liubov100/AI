@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SceneKit
 
 struct GameView: View {
     @StateObject private var gameState = GameState()
@@ -36,7 +37,15 @@ struct GameView: View {
             Color(red: 0.8, green: 0.9, blue: 1.0)
                 .ignoresSafeArea()
 
-            // City Environment
+            // 3D Scene (SceneKit)
+            SceneKitView(
+                collectables: $collectables,
+                npcs: $npcs,
+                interactiveObjects: $interactiveObjects,
+                catPosition: Binding(get: { catController.position }, set: { catController.position = $0 })
+            )
+
+            // City Environment (2D fallback/overlay)
             CityEnvironmentView(collectables: $collectables, objects: $interactiveObjects)
 
             // NPCs
@@ -172,16 +181,18 @@ struct GameView: View {
             }
         }
         .onChange(of: gameState.playerStats.level) { oldValue, newValue in
-            if newValue > previousLevel {
-                previousLevel = newValue
-                newLevel = newValue
-                showLevelUp = true
-                showNotificationMessage(
-                    title: "Level Up!",
-                    message: "You reached level \(newValue)!",
-                    icon: "star.fill",
-                    color: .yellow
-                )
+            DispatchQueue.main.async {
+                if newValue > previousLevel {
+                    previousLevel = newValue
+                    newLevel = newValue
+                    showLevelUp = true
+                    showNotificationMessage(
+                        title: "Level Up!",
+                        message: "You reached level \(newValue)!",
+                        icon: "star.fill",
+                        color: .yellow
+                    )
+                }
             }
         }
         .focusable()
@@ -356,27 +367,31 @@ struct GameView: View {
     func checkCollectables() {
         for i in 0..<collectables.count {
             if !collectables[i].isCollected && catController.isNearObject(objectPosition: collectables[i].position, threshold: 40) {
-                collectables[i].isCollected = true
-                let collectable = collectables[i]
-                gameState.collectItem(collectable)
+                let index = i
+                let collectable = collectables[index]
 
-                if collectable.type == .fish {
-                    gameState.playerStats.eatFish()
+                DispatchQueue.main.async {
+                    collectables[index].isCollected = true
+                    gameState.collectItem(collectable)
+
+                    if collectable.type == .fish {
+                        gameState.playerStats.eatFish()
+                    }
+
+                    // Show notification for collectible
+                    let itemName = collectable.type.rawValue.capitalized
+                    showNotificationMessage(
+                        title: "Collected!",
+                        message: "You found a \(itemName)!",
+                        icon: iconForCollectable(collectable.type),
+                        color: colorForCollectable(collectable.type)
+                    )
+
+                    // Tutorial check
+                    tutorialManager.checkAction(.collectItem)
                 }
 
-                // Show notification for collectible
-                let itemName = collectable.type.rawValue.capitalized
-                showNotificationMessage(
-                    title: "Collected!",
-                    message: "You found a \(itemName)!",
-                    icon: iconForCollectable(collectable.type),
-                    color: colorForCollectable(collectable.type)
-                )
-
-                // Tutorial check
-                tutorialManager.checkAction(.collectItem)
-
-                // Save progress to Firebase
+                // Save progress to Firebase (can run outside the deferred UI mutation)
                 Task {
                     try? await firebaseService.saveGameState(
                         stats: gameState.playerStats,
