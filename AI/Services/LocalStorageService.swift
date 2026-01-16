@@ -127,7 +127,7 @@ class LocalStorageService {
     func saveGameState(stats: PlayerStats, inventory: Inventory, catPosition: CGPoint, equippedHat: String?) {
         Task {
             try? await FirebaseService.shared.saveGameState(stats: stats, inventory: inventory)
-            if let hatId = equippedHat {
+            if equippedHat != nil {
                 try? await FirebaseService.shared.saveGameState(stats: stats, inventory: inventory)
             }
         }

@@ -51,7 +51,7 @@ class FirebaseService: ObservableObject {
     // MARK: - Authentication
     func authenticateAnonymously() {
         auth.signInAnonymously { [weak self] result, error in
-            if let error = error {
+            if error != nil {
                 return
             }
             DispatchQueue.main.async {
