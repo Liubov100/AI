@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 // MARK: - Tutorial Models
 struct TutorialStep: Identifiable, Codable {
@@ -134,7 +135,7 @@ class TutorialManager: ObservableObject {
         completeTutorial()
     }
 
-    private func completeTutorial() {
+    func completeTutorial() {
         tutorialCompleted = true
         isActive = false
 
@@ -144,7 +145,7 @@ class TutorialManager: ObservableObject {
         }
     }
 
-    func checkAction(_ action: TutorialAction) {
+    func checkAction(_ action: TutorialStep.TutorialAction) {
         if currentStep?.action == action {
             nextStep()
         }
@@ -240,7 +241,7 @@ struct TutorialOverlayView: View {
     }
 
     @ViewBuilder
-    private func actionIndicator(for action: TutorialAction) -> some View {
+    private func actionIndicator(for action: TutorialStep.TutorialAction) -> some View {
         HStack(spacing: 8) {
             switch action {
             case .moveWithWASD:
