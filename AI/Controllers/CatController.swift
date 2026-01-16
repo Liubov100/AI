@@ -23,11 +23,11 @@ class CatController: ObservableObject {
     private var isJumping = false
     private var groundLevel: CGFloat = 0
 
-    private let walkSpeed: CGFloat = 5
-    private let runSpeed: CGFloat = 10
-    private let jumpForce: CGFloat = -20
-    private let gravity: CGFloat = 1.2
-    private let climbSpeed: CGFloat = 3
+    private let walkSpeed = GameConfig.Physics.walkSpeed
+    private let runSpeed = GameConfig.Physics.runSpeed
+    private let jumpForce = GameConfig.Physics.jumpForce
+    private let gravity = GameConfig.Physics.gravity
+    private let climbSpeed = GameConfig.Physics.climbSpeed
 
     private var jumpTask: Task<Void, Never>?
 
@@ -37,38 +37,38 @@ class CatController: ObservableObject {
 
     // MARK: - Movement Controls
     func moveLeft(running: Bool = false) {
+        guard !isJumping else { return }
+
         let speed = running ? runSpeed : walkSpeed
-        Task { @MainActor in
-            facingDirection = .left
-            position.x -= speed
-            currentAction = running ? .running : .walking
-        }
+        facingDirection = .left
+        position.x -= speed
+        currentAction = running ? .running : .walking
     }
 
     func moveRight(running: Bool = false) {
+        guard !isJumping else { return }
+
         let speed = running ? runSpeed : walkSpeed
-        Task { @MainActor in
-            facingDirection = .right
-            position.x += speed
-            currentAction = running ? .running : .walking
-        }
+        facingDirection = .right
+        position.x += speed
+        currentAction = running ? .running : .walking
     }
 
     func moveUp(climbing: Bool = false) {
+        guard !isJumping else { return }
+
         let delta = climbing ? -climbSpeed : -walkSpeed
         let action: CatAction = climbing ? .climbing : .walking
-        Task { @MainActor in
-            position.y += delta
-            currentAction = action
-        }
+        position.y += delta
+        currentAction = action
     }
 
     func moveDown() {
+        guard !isJumping else { return }
+
         let delta = walkSpeed
-        Task { @MainActor in
-            position.y += delta
-            currentAction = .walking
-        }
+        position.y += delta
+        currentAction = .walking
     }
 
     func jump() {
@@ -83,8 +83,7 @@ class CatController: ObservableObject {
         jumpTask?.cancel()
         jumpTask = Task { [weak self] in
             guard let self = self else { return }
-            // Target ~60 FPS
-            let frameDuration: UInt64 = 16_666_667
+            let frameDuration = GameConfig.Performance.frameDurationNanoseconds
             while !Task.isCancelled {
                 // Compute physics values without touching @Published properties
                 let newVerticalVelocity = self.verticalVelocity + self.gravity
@@ -155,7 +154,7 @@ class CatController: ObservableObject {
     }
 
     // MARK: - Collision Detection
-    func isNearObject(objectPosition: CGPoint, threshold: CGFloat = 50) -> Bool {
+    func isNearObject(objectPosition: CGPoint, threshold: CGFloat = GameConfig.Gameplay.interactionRadius) -> Bool {
         let distance = sqrt(pow(position.x - objectPosition.x, 2) + pow(position.y - objectPosition.y, 2))
         return distance < threshold
     }

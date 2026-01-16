@@ -367,7 +367,10 @@ struct GameView: View {
     // MARK: - Game Logic
     func checkCollectables() {
         for i in 0..<collectables.count {
-            if !collectables[i].isCollected && catController.isNearObject(objectPosition: collectables[i].position, threshold: 40) {
+            if !collectables[i].isCollected && catController.isNearObject(
+                objectPosition: collectables[i].position,
+                threshold: GameConfig.Gameplay.collectionRadius
+            ) {
                 let index = i
                 let collectable = collectables[index]
 

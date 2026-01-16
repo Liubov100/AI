@@ -29,13 +29,13 @@ class GameState: ObservableObject {
         // Grant XP for collecting items
         switch item.type {
         case .shiny:
-            playerStats.gainXP(amount: 10)
+            playerStats.gainXP(amount: GameConfig.XPRewards.collectShiny)
         case .fish:
-            playerStats.gainXP(amount: 15)
+            playerStats.gainXP(amount: GameConfig.XPRewards.collectFish)
         case .feather:
-            playerStats.gainXP(amount: 20)
+            playerStats.gainXP(amount: GameConfig.XPRewards.collectFeather)
         case .hat:
-            playerStats.gainXP(amount: 50)
+            playerStats.gainXP(amount: GameConfig.XPRewards.collectHat)
         }
 
         scheduleSave()
@@ -56,9 +56,13 @@ class GameState: ObservableObject {
             inventory.feathers += quest.reward.feathers
 
             // Grant XP and currency rewards for quest completion
-            let xpReward = 50 + (quest.objectives.count * 25)
+            let xpReward = GameConfig.XPRewards.questBaseReward +
+                          (quest.objectives.count * GameConfig.XPRewards.questObjectiveBonus)
+            let shillingsReward = GameConfig.CurrencyRewards.questBaseShillings +
+                                 (quest.objectives.count * GameConfig.CurrencyRewards.questObjectiveBonus)
+
             playerStats.gainXP(amount: xpReward)
-            playerStats.addCurrency(shillings: 100 + (quest.objectives.count * 50))
+            playerStats.addCurrency(shillings: shillingsReward)
 
             Task {
                 try? await FirebaseService.shared.saveQuest(quests[index])
@@ -74,7 +78,8 @@ class GameState: ObservableObject {
 
         saveTask?.cancel()
         saveTask = Task {
-            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 second debounce
+            let debounceNanoseconds = UInt64(GameConfig.Gameplay.saveDebounceSeconds * 1_000_000_000)
+            try? await Task.sleep(nanoseconds: debounceNanoseconds)
 
             guard !Task.isCancelled, pendingSave else { return }
 
@@ -113,7 +118,8 @@ struct PlayerStats: Codable {
 
     // XP required for next level (exponential scaling)
     var xpToNextLevel: Int {
-        return 100 + (level - 1) * 50
+        return GameConfig.Progression.baseXPForNextLevel +
+               (level - 1) * GameConfig.Progression.xpIncreasePerLevel
     }
 
     // Level progress percentage (0.0 to 1.0)
@@ -133,13 +139,16 @@ struct PlayerStats: Codable {
 
     private mutating func levelUp() {
         level += 1
-        maxStamina = min(10, maxStamina + 1)
+        maxStamina = min(
+            GameConfig.Progression.maxStamina,
+            maxStamina + GameConfig.Progression.staminaPerLevel
+        )
         currentStamina = maxStamina
 
         // Level rewards
-        jorvikShillings += level * 50
+        jorvikShillings += level * GameConfig.CurrencyRewards.levelUpShillings
         if level % 5 == 0 {
-            starCoins += 10
+            starCoins += GameConfig.CurrencyRewards.starCoinsPerFiveLevels
         }
     }
 
