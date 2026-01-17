@@ -49,7 +49,7 @@ struct SceneKitView: UIViewRepresentable {
             // Ambient light
             let ambient = SCNLight()
             ambient.type = .ambient
-            ambient.color = UIColor(white: 0.6, alpha: 1.0)
+            ambient.color = UIColor(white: 0.2, alpha: 1.0)
             let ambientNode = SCNNode()
             ambientNode.light = ambient
             scene.rootNode.addChildNode(ambientNode)
@@ -91,8 +91,8 @@ struct SceneKitView: UIViewRepresentable {
                 if collectableNodes[c.id] == nil {
                     // Use a torus for shinies for a nicer 3D look
                     let geo = SCNTorus(ringRadius: 10, pipeRadius: 3)
-                    geo.firstMaterial?.diffuse.contents = UIColor.yellow
-                    geo.firstMaterial?.emission.contents = UIColor.white
+                    geo.firstMaterial?.diffuse.contents = UIColor.darkGray
+                    geo.firstMaterial?.emission.contents = UIColor.black
                     let node = SCNNode(geometry: geo)
                     node.name = c.id
                     node.position = SCNVector3(Float(c.position.x), Float(-c.position.y), 0)
@@ -125,7 +125,7 @@ struct SceneKitView: UIViewRepresentable {
             for n in npcs {
                 if npcNodes[n.id] == nil {
                     let geo = SCNCylinder(radius: 8, height: 24)
-                    geo.firstMaterial?.diffuse.contents = UIColor.brown
+                    geo.firstMaterial?.diffuse.contents = UIColor(red: 92/255.0, green: 64/255.0, blue: 51/255.0, alpha: 1.0)
                     let node = SCNNode(geometry: geo)
                     node.name = n.id
                     node.position = SCNVector3(Float(n.position.x), Float(-n.position.y), 0)
@@ -140,7 +140,7 @@ struct SceneKitView: UIViewRepresentable {
             for obj in interactiveObjects {
                 if interactiveNodes[obj.id] == nil {
                     let geo = SCNBox(width: 18, height: 18, length: 18, chamferRadius: 1)
-                    geo.firstMaterial?.diffuse.contents = UIColor.gray
+                    geo.firstMaterial?.diffuse.contents = UIColor.darkGray
                     let node = SCNNode(geometry: geo)
                     node.name = obj.id
                     node.position = SCNVector3(Float(obj.position.x), Float(-obj.position.y), 0)
@@ -208,7 +208,7 @@ struct SceneKitView: NSViewRepresentable {
             // Ambient light
             let ambient = SCNLight()
             ambient.type = .ambient
-            ambient.color = NSColor(white: 0.6, alpha: 1.0)
+            ambient.color = NSColor(white: 0.2, alpha: 1.0)
             let ambientNode = SCNNode()
             ambientNode.light = ambient
             scene.rootNode.addChildNode(ambientNode)
@@ -249,8 +249,8 @@ struct SceneKitView: NSViewRepresentable {
             for c in collectables where !c.isCollected {
                 if collectableNodes[c.id] == nil {
                     let geo = SCNTorus(ringRadius: 10, pipeRadius: 3)
-                    geo.firstMaterial?.diffuse.contents = NSColor.yellow
-                    geo.firstMaterial?.emission.contents = NSColor.white
+                    geo.firstMaterial?.diffuse.contents = NSColor.darkGray
+                    geo.firstMaterial?.emission.contents = NSColor.black
                     let node = SCNNode(geometry: geo)
                     node.name = c.id
                     node.position = SCNVector3(Float(c.position.x), Float(-c.position.y), 0)
@@ -282,7 +282,7 @@ struct SceneKitView: NSViewRepresentable {
             for n in npcs {
                 if npcNodes[n.id] == nil {
                     let geo = SCNCylinder(radius: 8, height: 24)
-                    geo.firstMaterial?.diffuse.contents = NSColor.brown
+                    geo.firstMaterial?.diffuse.contents = NSColor(calibratedRed: 92/255.0, green: 64/255.0, blue: 51/255.0, alpha: 1.0)
                     let node = SCNNode(geometry: geo)
                     node.name = n.id
                     node.position = SCNVector3(Float(n.position.x), Float(-n.position.y), 0)
@@ -297,7 +297,7 @@ struct SceneKitView: NSViewRepresentable {
             for obj in interactiveObjects {
                 if interactiveNodes[obj.id] == nil {
                     let geo = SCNBox(width: 18, height: 18, length: 18, chamferRadius: 1)
-                    geo.firstMaterial?.diffuse.contents = NSColor.gray
+                    geo.firstMaterial?.diffuse.contents = NSColor.darkGray
                     let node = SCNNode(geometry: geo)
                     node.name = obj.id
                     node.position = SCNVector3(Float(obj.position.x), Float(-obj.position.y), 0)

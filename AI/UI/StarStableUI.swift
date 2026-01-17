@@ -88,13 +88,6 @@ struct LevelBarView: View {
 
                             // Shine effect
                             RoundedRectangle(cornerRadius: 8)
-                                .fill(
-                                    LinearGradient(
-                                        colors: [Color.white.opacity(0.4), Color.clear],
-                                        startPoint: .top,
-                                        endPoint: .center
-                                    )
-                                )
                                 .frame(width: geometry.size.width * CGFloat(gameState.playerStats.levelProgress), height: 8)
                         }
                     }
@@ -201,12 +194,10 @@ struct CurrencyRow: View {
 
                 Image(systemName: icon)
                     .font(.system(size: 12))
-                    .foregroundColor(.white)
             }
 
             Text("\(amount)")
                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                .foregroundColor(.white)
                 .shadow(color: .black.opacity(0.5), radius: 1)
                 .frame(minWidth: 50, alignment: .leading)
         }
@@ -244,17 +235,14 @@ struct NotificationToast: View {
 
                     Image(systemName: icon)
                         .font(.title3)
-                        .foregroundColor(.white)
                 }
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.white)
 
                     Text(message)
                         .font(.system(size: 12))
-                        .foregroundColor(.white.opacity(0.9))
                         .lineLimit(2)
                 }
 

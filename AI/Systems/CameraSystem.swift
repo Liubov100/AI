@@ -722,8 +722,7 @@ class SceneManager: NSObject, ObservableObject, SCNSceneRendererDelegate {
         // Name tag
         let text = SCNText(string: player.name, extrusionDepth: 0.02)
         text.font = NSFont.systemFont(ofSize: 0.15)
-        text.firstMaterial?.diffuse.contents = NSColor.white
-        text.firstMaterial?.emission.contents = NSColor.white
+        text.firstMaterial?.emission.contents = NSColor.black
         let textNode = SCNNode(geometry: text)
         textNode.position = SCNVector3(x: -0.2, y: 0.8, z: 0)
         textNode.scale = SCNVector3(0.5, 0.5, 0.5)
@@ -788,7 +787,7 @@ struct CameraModePickerView: View {
         HStack(spacing: 10) {
             Text("Camera:")
                 .font(.caption)
-                .foregroundColor(.white)
+                .foregroundColor(.black)
                 .shadow(color: .black, radius: 2)
 
             ForEach([CameraController.CameraMode.followBehind, .followAbove, .cinematic, .free], id: \.self) { mode in
@@ -800,7 +799,7 @@ struct CameraModePickerView: View {
                         .padding(.horizontal, 8)
                         .padding(.vertical, 4)
                         .background(cameraController.cameraMode == mode ? Color.blue : Color.black.opacity(0.5))
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                         .cornerRadius(6)
                 }
                 .buttonStyle(.plain)

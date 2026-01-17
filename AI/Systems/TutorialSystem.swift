@@ -203,7 +203,7 @@ struct TutorialOverlayView: View {
                             }) {
                                 Text(step.action == .completed ? "Start Playing!" : "Continue")
                                     .font(.headline)
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.black)
                                     .padding(.horizontal, 30)
                                     .padding(.vertical, 12)
                                     .background(Color.blue)
