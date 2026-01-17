@@ -313,22 +313,37 @@ struct ControlRow: View {
     let action: String
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             Text(key)
-                .font(.system(.body, design: .monospaced))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.secondary.opacity(0.2))
-                .cornerRadius(4)
-                .frame(width: 140, alignment: .leading)
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .foregroundColor(.primary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color(.controlBackgroundColor), Color(.controlBackgroundColor).opacity(0.7)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                )
+                .frame(width: 150, alignment: .leading)
 
-            Image(systemName: "arrow.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
+            Image(systemName: "arrow.right.circle.fill")
+                .font(.system(size: 12))
+                .foregroundColor(.green.opacity(0.7))
 
             Text(action)
+                .font(.system(size: 13))
                 .foregroundColor(.secondary)
         }
+        .padding(.vertical, 2)
     }
 }
 

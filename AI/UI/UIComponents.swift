@@ -732,6 +732,57 @@ struct CityEnvironmentView: View {
     }
 }
 
+// MARK: - Game Button Styles
+struct GameButton: View {
+    let title: String
+    let icon: String?
+    let color: Color
+    let action: () -> Void
+    var isDisabled: Bool = false
+
+    init(
+        _ title: String,
+        icon: String? = nil,
+        color: Color = .blue,
+        isDisabled: Bool = false,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.icon = icon
+        self.color = color
+        self.isDisabled = isDisabled
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if let icon = icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                Text(title)
+                    .font(.system(size: 15, weight: .semibold))
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(
+                        isDisabled ?
+                            LinearGradient(colors: [.gray, .gray], startPoint: .top, endPoint: .bottom) :
+                            LinearGradient(colors: [color, color.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+            )
+            .shadow(color: isDisabled ? .clear : color.opacity(0.4), radius: 5, x: 0, y: 3)
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.6 : 1.0)
+    }
+}
+
 // MARK: - Interactive Object View
 struct InteractiveObjectView: View {
     let object: InteractiveObject
