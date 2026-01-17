@@ -287,6 +287,35 @@ class ChatManager: ObservableObject {
 
             if isAI {
                 unreadCount += 1
+            } else {
+                // Auto-respond from a random AI in global chat (rate-limited)
+                let aiPlayers = Array(aiPersonalities.keys)
+                guard !aiPlayers.isEmpty else { return }
+
+                // Prefer AIs that haven't spoken recently
+                var candidates = aiPlayers.filter { id in
+                    if let last = lastAIMessage[id] {
+                        return Date().timeIntervalSince(last) >= 5
+                    }
+                    return true
+                }
+
+                if candidates.isEmpty { candidates = aiPlayers }
+
+                if let responder = candidates.randomElement(), let personality = aiPersonalities[responder] {
+                    let delay = Double.random(in: 1.0...2.5)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                        guard let self = self else { return }
+                        let response = personality.responseToMessage(message)
+                        self.sendMessage(
+                            senderId: responder,
+                            senderName: self.getPlayerName(responder),
+                            message: response,
+                            isAI: true
+                        )
+                        self.lastAIMessage[responder] = Date()
+                    }
+                }
             }
         }
     }
