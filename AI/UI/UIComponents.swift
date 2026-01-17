@@ -12,44 +12,77 @@ struct StatsPanel: View {
     @ObservedObject var gameState: GameState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                Image(systemName: "star.fill")
-                    .foregroundColor(.yellow)
-                Text("\(gameState.inventory.shinies)")
-                    .font(.headline)
-                    .appTextBackground()
-            }
+        VStack(alignment: .leading, spacing: 12) {
+            StatRow(icon: "star.fill", iconColor: .yellow, value: "\(gameState.inventory.shinies)")
+            StatRow(icon: "leaf.fill", iconColor: .green, value: "\(gameState.inventory.feathers)")
+            StatRow(icon: "fish.fill", iconColor: .cyan, value: "\(gameState.inventory.fish)")
 
-            HStack {
-                Image(systemName: "leaf.fill")
-                    .foregroundColor(.green)
-                Text("\(gameState.inventory.feathers)")
-                    .font(.headline)
-                    .appTextBackground()
-            }
-
-            HStack {
-                Image(systemName: "fish.fill")
-                    .foregroundColor(.blue)
-                Text("\(gameState.inventory.fish)")
-                    .font(.headline)
-                    .appTextBackground()
-            }
-
-            HStack {
+            HStack(spacing: 8) {
                 Image(systemName: "bolt.fill")
                     .foregroundColor(.orange)
-                ForEach(0..<gameState.playerStats.maxStamina, id: \.self) { i in
-                    Circle()
-                        .fill(i < gameState.playerStats.currentStamina ? Color.orange : Color.gray.opacity(0.3))
-                        .frame(width: 15, height: 15)
+                    .font(.system(size: 14))
+                    .frame(width: 20)
+
+                HStack(spacing: 4) {
+                    ForEach(0..<gameState.playerStats.maxStamina, id: \.self) { i in
+                        Circle()
+                            .fill(i < gameState.playerStats.currentStamina ?
+                                  LinearGradient(colors: [.orange, .yellow], startPoint: .topLeading, endPoint: .bottomTrailing) :
+                                  LinearGradient(colors: [.gray.opacity(0.3), .gray.opacity(0.2)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                            .frame(width: 16, height: 16)
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                            )
+                            .shadow(color: i < gameState.playerStats.currentStamina ? .orange.opacity(0.4) : .clear, radius: 2)
+                    }
                 }
             }
         }
-        .padding()
-        .background(Color.white.opacity(0.8))
-        .cornerRadius(15)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.black.opacity(0.7), Color.black.opacity(0.5)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.3), Color.clear],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .shadow(color: .black.opacity(0.5), radius: 5, x: 0, y: 2)
+    }
+}
+
+// MARK: - Stat Row Helper
+struct StatRow: View {
+    let icon: String
+    let iconColor: Color
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundColor(iconColor)
+                .font(.system(size: 14))
+                .frame(width: 20)
+
+            Text(value)
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundColor(.white)
+                .shadow(color: .black.opacity(0.5), radius: 1)
+        }
     }
 }
 
@@ -129,43 +162,76 @@ struct QuestPanelView: View {
     var body: some View {
         HStack {
             Spacer()
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Header with gradient background
                 HStack {
+                    Image(systemName: "list.bullet.clipboard.fill")
+                        .font(.title2)
+                        .foregroundColor(.yellow)
                     Text("Quests")
-                        .font(.title)
-                        .bold()
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.white)
                     Spacer()
-                    Button(action: { isShowing = false }) {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            isShowing = false
+                        }
+                    }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
+                            .foregroundColor(.white.opacity(0.8))
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding()
+                .background(
+                    LinearGradient(
+                        colors: [Color.purple.opacity(0.8), Color.blue.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
 
+                // Quest list
                 ScrollView {
-                    ForEach(gameState.quests) { quest in
-                        QuestCardView(quest: quest, gameState: gameState)
-                            .padding(.horizontal)
+                    VStack(spacing: 12) {
+                        ForEach(gameState.quests) { quest in
+                            QuestCardView(quest: quest, gameState: gameState)
+                        }
                     }
+                    .padding()
                 }
+                .background(Color(.windowBackgroundColor))
 
+                // Generate button with improved styling
                 Button(action: generateNewQuest) {
-                    HStack {
+                    HStack(spacing: 10) {
                         Image(systemName: "sparkles")
+                            .font(.system(size: 16, weight: .semibold))
                         Text("Generate AI Quest")
+                            .font(.system(size: 16, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
+                    .padding(.vertical, 14)
+                    .background(
+                        LinearGradient(
+                            colors: [Color.blue, Color.purple],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
                     .foregroundColor(.white)
-                    .cornerRadius(10)
+                    .cornerRadius(12)
+                    .shadow(color: .blue.opacity(0.3), radius: 5, x: 0, y: 3)
                 }
+                .buttonStyle(.plain)
                 .padding()
+                .background(Color(.windowBackgroundColor))
             }
-            .frame(width: 350)
-            .background(Color.white)
+            .frame(width: 380)
+            .background(Color(.windowBackgroundColor))
             .cornerRadius(20)
-            .shadow(radius: 10)
+            .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 5)
         }
         .padding()
     }
@@ -201,76 +267,119 @@ struct QuestCardView: View {
     @ObservedObject var gameState: GameState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text(quest.title)
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: 12) {
+            // Title and status
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(quest.title)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(.primary)
+
+                    if let npc = quest.npcName {
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 10))
+                            Text(npc)
+                                .font(.system(size: 12, weight: .medium))
+                        }
+                        .foregroundColor(.blue)
+                    }
+                }
                 Spacer()
                 statusBadge
             }
 
             Text(quest.description)
-                .font(.subheadline)
+                .font(.system(size: 14))
                 .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
-            if let npc = quest.npcName {
-                HStack {
-                    Image(systemName: "person.fill")
-                    Text(npc)
-                        .font(.caption)
+            // Objectives
+            VStack(spacing: 8) {
+                ForEach(Array(quest.objectives.enumerated()), id: \.offset) { index, objective in
+                    HStack(spacing: 8) {
+                        Image(systemName: objective.isComplete ? "checkmark.circle.fill" : "circle")
+                            .foregroundColor(objective.isComplete ? .green : .gray.opacity(0.6))
+                            .font(.system(size: 14))
+
+                        Text(objectiveText(objective))
+                            .font(.system(size: 13))
+                            .foregroundColor(objective.isComplete ? .secondary : .primary)
+
+                        Spacer()
+
+                        Text("\(objective.currentProgress)/\(objective.targetAmount)")
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.gray.opacity(0.15))
+                            .cornerRadius(8)
+                    }
                 }
-                .foregroundColor(.blue)
             }
+            .padding(.vertical, 4)
 
-            ForEach(Array(quest.objectives.enumerated()), id: \.offset) { index, objective in
-                HStack {
-                    Image(systemName: objective.isComplete ? "checkmark.circle.fill" : "circle")
-                        .foregroundColor(objective.isComplete ? .green : .gray)
-                    Text(objectiveText(objective))
-                        .font(.caption)
-                    Spacer()
-                    Text("\(objective.currentProgress)/\(objective.targetAmount)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
+            Divider()
 
-            HStack {
-                Label("\(quest.reward.shinies)", systemImage: "star.fill")
-                    .foregroundColor(.yellow)
-                if quest.reward.feathers > 0 {
-                    Label("\(quest.reward.feathers)", systemImage: "leaf.fill")
-                        .foregroundColor(.green)
+            // Rewards and action button
+            HStack(spacing: 12) {
+                HStack(spacing: 8) {
+                    RewardBadge(icon: "star.fill", color: .yellow, amount: quest.reward.shinies)
+                    if quest.reward.feathers > 0 {
+                        RewardBadge(icon: "leaf.fill", color: .green, amount: quest.reward.feathers)
+                    }
                 }
+
                 Spacer()
 
                 if quest.status == .available {
-                    Button("Accept") {
-                        acceptQuest()
+                    Button(action: acceptQuest) {
+                        Text("Accept")
+                            .font(.system(size: 14, weight: .semibold))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(.blue)
                 } else if quest.status == .readyToComplete {
-                    Button("Complete") {
-                        completeQuest()
+                    Button(action: completeQuest) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "checkmark")
+                            Text("Complete")
+                                .font(.system(size: 14, weight: .semibold))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.green)
                 }
             }
-            .font(.caption)
         }
-        .padding()
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(10)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(statusColor.opacity(0.3), lineWidth: 2)
+        )
+        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 
     var statusBadge: some View {
         Text(quest.status.rawValue.capitalized)
-            .font(.caption)
-            .padding(5)
-            .background(statusColor)
+            .font(.system(size: 11, weight: .bold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                Capsule()
+                    .fill(statusColor)
+            )
             .foregroundColor(.white)
-            .cornerRadius(5)
+            .shadow(color: statusColor.opacity(0.4), radius: 3)
     }
 
     var statusColor: Color {
@@ -280,6 +389,28 @@ struct QuestCardView: View {
         case .readyToComplete: return .green
         case .completed: return .gray
         }
+    }
+}
+
+// MARK: - Reward Badge Helper
+struct RewardBadge: View {
+    let icon: String
+    let color: Color
+    let amount: Int
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundColor(color)
+            Text("\(amount)")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundColor(.primary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(color.opacity(0.15))
+        .cornerRadius(8)
     }
 
     func objectiveText(_ objective: QuestObjective) -> String {
@@ -316,54 +447,98 @@ struct InventoryView: View {
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Header with gradient
                 HStack {
+                    Image(systemName: "backpack.fill")
+                        .font(.title2)
+                        .foregroundColor(.yellow)
                     Text("Inventory")
-                        .font(.title)
-                        .bold()
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.white)
                     Spacer()
-                    Button(action: { isShowing = false }) {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            isShowing = false
+                        }
+                    }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title2)
+                            .foregroundColor(.white.opacity(0.8))
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding()
+                .background(
+                    LinearGradient(
+                        colors: [Color.orange.opacity(0.8), Color.yellow.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
 
-                VStack(alignment: .leading, spacing: 20) {
-                    inventoryItem(icon: "star.fill", color: .yellow, label: "Shinies", count: inventory.shinies)
-                    inventoryItem(icon: "leaf.fill", color: .green, label: "Feathers", count: inventory.feathers)
-                    inventoryItem(icon: "fish.fill", color: .blue, label: "Fish", count: inventory.fish)
-                    inventoryItem(icon: "crown.fill", color: .purple, label: "Hats Unlocked", count: inventory.hatsUnlocked.count)
+                // Inventory items
+                ScrollView {
+                    VStack(spacing: 14) {
+                        inventoryItem(icon: "star.fill", color: .yellow, label: "Shinies", count: inventory.shinies)
+                        inventoryItem(icon: "leaf.fill", color: .green, label: "Feathers", count: inventory.feathers)
+                        inventoryItem(icon: "fish.fill", color: .cyan, label: "Fish", count: inventory.fish)
+                        inventoryItem(icon: "crown.fill", color: .purple, label: "Hats Unlocked", count: inventory.hatsUnlocked.count)
+                    }
+                    .padding()
                 }
-                .padding()
+                .background(Color(.windowBackgroundColor))
 
                 Spacer()
             }
-            .frame(width: 300)
-            .background(Color.white)
+            .frame(width: 340)
+            .background(Color(.windowBackgroundColor))
             .cornerRadius(20)
-            .shadow(radius: 10)
+            .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 5)
             Spacer()
         }
         .padding()
     }
 
     func inventoryItem(icon: String, color: Color, label: String, count: Int) -> some View {
-        HStack {
-            Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
-                .frame(width: 40)
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [color.opacity(0.8), color.opacity(0.6)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 50, height: 50)
+                    .shadow(color: color.opacity(0.4), radius: 4)
+
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundColor(.white)
+            }
+
             Text(label)
-                .font(.headline)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.primary)
+
             Spacer()
+
             Text("\(count)")
-                .font(.title3)
-                .bold()
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundColor(color)
         }
-        .padding()
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(10)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(color.opacity(0.2), lineWidth: 2)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 2)
     }
 }
 
@@ -380,32 +555,51 @@ struct HatCustomizationView: View {
     ]
 
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+            // Header with gradient
             HStack {
+                Image(systemName: "crown.fill")
+                    .font(.title2)
+                    .foregroundColor(.yellow)
                 Text("Hat Customization")
-                    .font(.title)
-                    .bold()
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.white)
                 Spacer()
-                Button(action: { isShowing = false }) {
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        isShowing = false
+                    }
+                }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
+                        .foregroundColor(.white.opacity(0.8))
                 }
+                .buttonStyle(.plain)
             }
             .padding()
+            .background(
+                LinearGradient(
+                    colors: [Color.purple.opacity(0.8), Color.pink.opacity(0.6)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
 
+            // Hat grid
             ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))], spacing: 20) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 16)], spacing: 16) {
                     ForEach(availableHats) { hat in
                         HatCardView(hat: hat, gameState: gameState)
                     }
                 }
                 .padding()
             }
+            .background(Color(.windowBackgroundColor))
         }
-        .frame(width: 500, height: 400)
-        .background(Color.white)
+        .frame(width: 540, height: 450)
+        .background(Color(.windowBackgroundColor))
         .cornerRadius(20)
-        .shadow(radius: 10)
+        .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 5)
     }
 }
 
@@ -414,36 +608,77 @@ struct HatCardView: View {
     @ObservedObject var gameState: GameState
 
     var body: some View {
-        VStack {
-            Image(systemName: "crown.fill")
-                .font(.largeTitle)
-                .foregroundColor(isUnlocked ? .purple : .gray)
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: isUnlocked ?
+                                [Color.purple.opacity(0.3), Color.pink.opacity(0.2)] :
+                                [Color.gray.opacity(0.2), Color.gray.opacity(0.1)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 80, height: 80)
 
-            Text(hat.name)
-                .font(.headline)
+                Image(systemName: "crown.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(isUnlocked ? .purple : .gray.opacity(0.5))
+            }
+            .shadow(color: isUnlocked ? .purple.opacity(0.3) : .clear, radius: 5)
 
-            Text(hat.description)
-                .font(.caption)
-                .foregroundColor(.secondary)
+            VStack(spacing: 4) {
+                Text(hat.name)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.primary)
+
+                Text(hat.description)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
 
             if isUnlocked {
-                Button(isEquipped ? "Equipped" : "Equip") {
+                Button(action: {
                     gameState.equippedHat = hat
                     gameState.scheduleSave()
+                }) {
+                    Text(isEquipped ? "Equipped" : "Equip")
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(isEquipped ? .gray : .purple)
                 .disabled(isEquipped)
             } else {
-                Button("Unlock: \(hat.cost) ⭐") {
-                    unlockHat()
+                Button(action: unlockHat) {
+                    HStack(spacing: 4) {
+                        Text("Unlock")
+                            .font(.system(size: 13, weight: .semibold))
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 10))
+                        Text("\(hat.cost)")
+                            .font(.system(size: 13, weight: .bold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
                 .buttonStyle(.bordered)
+                .tint(.yellow)
                 .disabled(gameState.inventory.shinies < hat.cost)
             }
         }
-        .padding()
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(10)
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(.controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(isUnlocked ? Color.purple.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 2)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 2)
     }
 
     var isUnlocked: Bool {
@@ -537,26 +772,110 @@ struct ActionHintView: View {
     let action: String
 
     var body: some View {
-        Text(action)
-            .padding()
-            .background(Color.black.opacity(0.7))
-            .foregroundColor(.white)
-            .cornerRadius(10)
+        HStack(spacing: 8) {
+            Image(systemName: "hand.point.up.left.fill")
+                .font(.system(size: 14))
+                .foregroundColor(.yellow)
+
+            Text(action)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.white)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.black.opacity(0.85), Color.black.opacity(0.7)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.yellow.opacity(0.3), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.5), radius: 5, x: 0, y: 3)
     }
 }
 
 // MARK: - Controls Help
 struct ControlsHelpView: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text("WASD/Arrows: Move | Space: Jump | C: Crawl | E: Interact")
-                .font(.caption)
-            Text("Q: Quests | I: Inventory | Chat: Talk with AI Players | Shift+Move: Run")
-                .font(.caption)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                ControlKey("WASD")
+                Text("/ Arrows: Move |")
+                ControlKey("Space")
+                Text(": Jump |")
+                ControlKey("C")
+                Text(": Crawl |")
+                ControlKey("E")
+                Text(": Interact")
+            }
+            .font(.system(size: 11, weight: .medium))
+
+            HStack(spacing: 4) {
+                ControlKey("Q")
+                Text(": Quests |")
+                ControlKey("I")
+                Text(": Inventory | Chat: Talk with AI |")
+                ControlKey("Shift")
+                Text("+ Move: Run")
+            }
+            .font(.system(size: 11, weight: .medium))
         }
-        .padding(10)
-        .background(Color.black.opacity(0.5))
         .foregroundColor(.white)
-        .cornerRadius(10)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.black.opacity(0.75), Color.black.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.5), radius: 5, x: 0, y: 3)
+    }
+}
+
+// MARK: - Control Key Helper
+struct ControlKey: View {
+    let key: String
+
+    init(_ key: String) {
+        self.key = key
+    }
+
+    var body: some View {
+        Text(key)
+            .font(.system(size: 10, weight: .bold, design: .monospaced))
+            .foregroundColor(.black)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 3)
+            .background(
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.white, Color.gray.opacity(0.8)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(Color.white.opacity(0.3), lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.2), radius: 1, x: 0, y: 1)
     }
 }

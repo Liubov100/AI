@@ -61,60 +61,103 @@ struct GameView: View {
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 10) {
-                        HStack(spacing: 15) {
-                            Button(action: { showInventory.toggle() }) {
-                                Image(systemName: "backpack")
-                                    .font(.title2)
-                                    .padding(10)
-                                    .background(Color.white.opacity(0.8))
-                                    .cornerRadius(10)
-                            }
-                            Button(action: { showQuestPanel.toggle() }) {
-                                Image(systemName: "list.bullet.clipboard")
-                                    .font(.title2)
-                                    .padding(10)
-                                    .background(Color.white.opacity(0.8))
-                                    .cornerRadius(10)
-                            }
-                            Button(action: { showHatCustomization.toggle() }) {
-                                Image(systemName: "crown")
-                                    .font(.title2)
-                                    .padding(10)
-                                    .background(Color.white.opacity(0.8))
-                                    .cornerRadius(10)
-                            }
-                            Button(action: { showSettings.toggle() }) {
-                                Image(systemName: "gearshape.fill")
-                                    .font(.title2)
-                                    .padding(10)
-                                    .background(Color.white.opacity(0.8))
-                                    .cornerRadius(10)
-                            }
+                        HStack(spacing: 12) {
+                            IconButton(
+                                icon: "backpack.fill",
+                                color: .orange,
+                                action: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                        showInventory.toggle()
+                                    }
+                                }
+                            )
+                            IconButton(
+                                icon: "list.bullet.clipboard.fill",
+                                color: .purple,
+                                action: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                        showQuestPanel.toggle()
+                                    }
+                                }
+                            )
+                            IconButton(
+                                icon: "crown.fill",
+                                color: .yellow,
+                                action: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                        showHatCustomization.toggle()
+                                    }
+                                }
+                            )
+                            IconButton(
+                                icon: "gearshape.fill",
+                                color: .gray,
+                                action: {
+                                    withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                        showSettings.toggle()
+                                    }
+                                }
+                            )
 
                             // Chat Button
                             ChatButtonView(chatManager: chatManager, showChat: $showChat)
 
                             // Friends Button
-                            Button(action: { showFriends.toggle() }) {
+                            Button(action: {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
+                                    showFriends.toggle()
+                                }
+                            }) {
                                 ZStack(alignment: .topTrailing) {
                                     Image(systemName: "person.2.fill")
-                                        .font(.title2)
-                                        .padding(10)
-                                        .background(Color.white.opacity(0.8))
-                                        .cornerRadius(10)
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(.purple)
+                                        .frame(width: 44, height: 44)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [Color.black.opacity(0.7), Color.black.opacity(0.5)],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .stroke(
+                                                    LinearGradient(
+                                                        colors: [Color.white.opacity(0.3), Color.clear],
+                                                        startPoint: .top,
+                                                        endPoint: .bottom
+                                                    ),
+                                                    lineWidth: 1
+                                                )
+                                        )
+                                        .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
 
                                     if chatManager.getTotalUnreadPrivateMessages() > 0 {
                                         Text("\(chatManager.getTotalUnreadPrivateMessages())")
-                                            .font(.caption2)
-                                            .bold()
+                                            .font(.system(size: 10, weight: .bold))
                                             .foregroundColor(.white)
-                                            .padding(4)
-                                            .background(Color.purple)
-                                            .clipShape(Circle())
-                                            .offset(x: 5, y: -5)
+                                            .padding(5)
+                                            .background(
+                                                Circle()
+                                                    .fill(
+                                                        LinearGradient(
+                                                            colors: [.purple, .pink],
+                                                            startPoint: .topLeading,
+                                                            endPoint: .bottomTrailing
+                                                        )
+                                                    )
+                                            )
+                                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                            .shadow(color: .purple.opacity(0.5), radius: 3)
+                                            .offset(x: 6, y: -6)
                                     }
                                 }
                             }
+                            .buttonStyle(.plain)
 
                             // Activity Feed Button
                             ActivityFeedButton(eventManager: eventManager, showFeed: $showActivityFeed)
@@ -155,25 +198,37 @@ struct GameView: View {
             // Quest Panel
             if showQuestPanel {
                 QuestPanelView(gameState: gameState, isShowing: $showQuestPanel)
-                    .transition(.move(edge: .trailing))
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .trailing).combined(with: .opacity)
+                    ))
             }
 
             // Inventory
             if showInventory {
                 InventoryView(inventory: gameState.inventory, isShowing: $showInventory)
-                    .transition(.move(edge: .leading))
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .leading).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
             }
 
             // Hat Customization
             if showHatCustomization {
                 HatCustomizationView(gameState: gameState, isShowing: $showHatCustomization)
-                    .transition(.scale)
+                    .transition(.asymmetric(
+                        insertion: .scale(scale: 0.8).combined(with: .opacity),
+                        removal: .scale(scale: 0.8).combined(with: .opacity)
+                    ))
             }
 
             // Settings
             if showSettings {
                 SettingsView(isShowing: $showSettings, gameState: gameState)
-                    .transition(.opacity)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .scale(scale: 0.95)),
+                        removal: .opacity.combined(with: .scale(scale: 0.95))
+                    ))
                     .zIndex(1000)
             }
 
@@ -529,6 +584,45 @@ struct GameView: View {
             }
         }
         return nil
+    }
+}
+
+// MARK: - Icon Button Component
+struct IconButton: View {
+    let icon: String
+    let color: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(color)
+                .frame(width: 44, height: 44)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.black.opacity(0.7), Color.black.opacity(0.5)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.3), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(color: .black.opacity(0.3), radius: 4, x: 0, y: 2)
+        }
+        .buttonStyle(.plain)
     }
 }
 

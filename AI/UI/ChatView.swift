@@ -18,29 +18,49 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
+            // Header with gradient
             HStack {
+                Image(systemName: "bubble.left.and.bubble.right.fill")
+                    .font(.title3)
+                    .foregroundColor(.cyan)
                 Text("Chat")
-                    .font(.title2)
-                    .bold()
-                    .appTextBackground()
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
                 Spacer()
-                Text("\(chatManager.messages.filter { $0.isAI }.count) AI Players Online")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .appTextBackground()
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 8, height: 8)
+                    Text("\(chatManager.messages.filter { $0.isAI }.count) Online")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.2))
+                )
                 Button(action: { isShowing = false }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
+                        .foregroundColor(.white.opacity(0.8))
                 }
+                .buttonStyle(.plain)
             }
             .padding()
-            .background(Color.blue.opacity(0.1))
+            .background(
+                LinearGradient(
+                    colors: [Color.blue.opacity(0.8), Color.cyan.opacity(0.6)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
 
             // Messages
             ScrollViewReader { proxy in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 10) {
+                    LazyVStack(alignment: .leading, spacing: 12) {
                         ForEach(chatManager.messages) { message in
                             ChatBubbleView(
                                 message: message,
@@ -51,9 +71,10 @@ struct ChatView: View {
                     }
                     .padding()
                 }
+                .background(Color(.windowBackgroundColor).opacity(0.95))
                 .onChange(of: chatManager.messages.count) { _, _ in
                     if let lastMessage = chatManager.messages.last {
-                        withAnimation {
+                        withAnimation(.easeOut(duration: 0.3)) {
                             proxy.scrollTo(lastMessage.id, anchor: .bottom)
                         }
                     }
@@ -61,9 +82,19 @@ struct ChatView: View {
             }
 
             // Input
-            HStack {
+            HStack(spacing: 10) {
                 TextField("Type a message...", text: $messageText)
-                    .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 14))
+                    .padding(10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(.controlBackgroundColor))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                    )
                     .focused($isTextFieldFocused)
                     .onSubmit {
                         sendMessage()
@@ -71,20 +102,29 @@ struct ChatView: View {
 
                 Button(action: sendMessage) {
                     Image(systemName: "paperplane.fill")
-                        .foregroundColor(.black)
+                        .font(.system(size: 16))
+                        .foregroundColor(.white)
                         .padding(10)
-                        .background(messageText.isEmpty ? Color.gray : Color.blue)
-                        .cornerRadius(10)
+                        .background(
+                            Circle()
+                                .fill(
+                                    messageText.isEmpty ?
+                                        LinearGradient(colors: [.gray, .gray], startPoint: .top, endPoint: .bottom) :
+                                        LinearGradient(colors: [.blue, .cyan], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                )
+                        )
+                        .shadow(color: messageText.isEmpty ? .clear : .blue.opacity(0.3), radius: 4)
                 }
+                .buttonStyle(.plain)
                 .disabled(messageText.isEmpty)
             }
             .padding()
-            .background(Color.gray.opacity(0.1))
+            .background(Color(.windowBackgroundColor))
         }
-        .frame(width: 400, height: 500)
+        .frame(width: 420, height: 520)
         .background(Color(.windowBackgroundColor))
         .cornerRadius(20)
-        .shadow(radius: 10)
+        .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 5)
         .onAppear {
             chatManager.markAsRead()
             // Auto-focus the text field when chat opens
@@ -124,39 +164,77 @@ struct ChatBubbleView: View {
     let isLocalPlayer: Bool
 
     var body: some View {
-        HStack {
+        HStack(alignment: .bottom, spacing: 8) {
             if isLocalPlayer {
-                Spacer()
+                Spacer(minLength: 40)
+            } else {
+                // Avatar for other players
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.blue.opacity(0.6), Color.cyan.opacity(0.4)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 32, height: 32)
+
+                    if message.isAI {
+                        Image(systemName: "cpu")
+                            .font(.system(size: 14))
+                            .foregroundColor(.white)
+                    } else {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.white)
+                    }
+                }
+                .shadow(color: .blue.opacity(0.3), radius: 2)
             }
 
             VStack(alignment: isLocalPlayer ? .trailing : .leading, spacing: 4) {
+                // Sender name and time
                 HStack(spacing: 6) {
                     if !isLocalPlayer && message.isAI {
-                        Image(systemName: "cpu")
-                            .font(.caption2)
-                            .foregroundColor(.blue)
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 9))
+                            .foregroundColor(.cyan)
                     }
 
                     Text(message.senderName)
-                        .font(.caption)
-                        .bold()
-                        .foregroundColor(isLocalPlayer ? .black : .blue)
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(isLocalPlayer ? .blue : .cyan)
 
                     Text(message.timestamp, style: .time)
-                        .font(.caption2)
-                        .foregroundColor(isLocalPlayer ? .black.opacity(0.7) : .gray)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
                 }
+                .padding(.horizontal, 4)
 
+                // Message bubble
                 Text(message.message)
-                    .font(.body)
-                    .padding(10)
-                    .background(isLocalPlayer ? Color.blue.opacity(0.8) : Color.gray.opacity(0.2))
-                    .foregroundColor(isLocalPlayer ? .black : .primary)
-                    .cornerRadius(12)
+                    .font(.system(size: 14))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(
+                                isLocalPlayer ?
+                                    LinearGradient(colors: [Color.blue.opacity(0.8), Color.blue.opacity(0.6)], startPoint: .topLeading, endPoint: .bottomTrailing) :
+                                    LinearGradient(colors: [Color(.controlBackgroundColor), Color(.controlBackgroundColor).opacity(0.8)], startPoint: .top, endPoint: .bottom)
+                            )
+                    )
+                    .foregroundColor(isLocalPlayer ? .white : .primary)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(isLocalPlayer ? Color.white.opacity(0.2) : Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.1), radius: 3, x: 0, y: 2)
             }
 
             if !isLocalPlayer {
-                Spacer()
+                Spacer(minLength: 40)
             }
         }
     }
@@ -276,56 +354,82 @@ struct FriendsListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
+            // Header with gradient
             HStack {
+                Image(systemName: "person.2.fill")
+                    .font(.title3)
+                    .foregroundColor(.pink)
                 Text("Friends")
-                    .font(.title2)
-                    .bold()
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
                 Spacer()
                 Button(action: { isShowing = false }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)
+                        .foregroundColor(.white.opacity(0.8))
                 }
+                .buttonStyle(.plain)
             }
             .padding()
-            .background(Color.purple.opacity(0.1))
+            .background(
+                LinearGradient(
+                    colors: [Color.purple.opacity(0.8), Color.pink.opacity(0.6)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
 
             // Friends list
             ScrollView {
-                VStack(spacing: 10) {
+                VStack(spacing: 12) {
                     ForEach(networkManager.connectedPlayers.filter { $0.isAI }) { player in
                         Button(action: {
                             selectedFriend = (id: player.id, name: player.name)
                             showPrivateChat = true
                         }) {
-                            HStack {
-                                // Avatar
+                            HStack(spacing: 14) {
+                                // Avatar with gradient
                                 ZStack {
                                     Circle()
-                                        .fill(Color.gray.opacity(0.3))
-                                        .frame(width: 50, height: 50)
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Color.purple.opacity(0.6), Color.pink.opacity(0.4)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 56, height: 56)
+                                        .shadow(color: .purple.opacity(0.3), radius: 4)
+
                                     Image(systemName: "person.fill")
                                         .font(.title2)
-                                        .foregroundColor(.gray)
+                                        .foregroundColor(.white)
                                 }
 
-                                VStack(alignment: .leading, spacing: 4) {
+                                VStack(alignment: .leading, spacing: 5) {
                                     HStack {
                                         Text(player.name)
-                                            .font(.headline)
+                                            .font(.system(size: 16, weight: .semibold))
                                             .foregroundColor(.primary)
                                         Spacer()
                                         Text("Lv.\(player.level)")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .font(.system(size: 12, weight: .medium))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 3)
+                                            .background(
+                                                Capsule()
+                                                    .fill(Color.purple.opacity(0.7))
+                                            )
                                     }
 
-                                    HStack {
+                                    HStack(spacing: 6) {
                                         Circle()
                                             .fill(Color.green)
                                             .frame(width: 8, height: 8)
+                                            .shadow(color: .green, radius: 2)
                                         Text("Online")
-                                            .font(.caption)
+                                            .font(.system(size: 12))
                                             .foregroundColor(.secondary)
                                     }
                                 }
@@ -333,29 +437,44 @@ struct FriendsListView: View {
                                 // Unread badge
                                 if chatManager.getUnreadCount(forFriend: player.id, localPlayerId: localPlayerId) > 0 {
                                     Text("\(chatManager.getUnreadCount(forFriend: player.id, localPlayerId: localPlayerId))")
-                                        .font(.caption2)
-                                        .bold()
-                                        .foregroundColor(.black)
-                                        .padding(6)
-                                        .background(Color.red)
-                                        .clipShape(Circle())
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(7)
+                                        .background(
+                                            Circle()
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [.red, .pink],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                )
+                                        )
+                                        .shadow(color: .red.opacity(0.5), radius: 3)
                                 }
                             }
-                            .padding()
-                            .background(Color(.windowBackgroundColor))
-                            .cornerRadius(12)
-                            .shadow(color: .black.opacity(0.1), radius: 3)
+                            .padding(14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .fill(Color(.controlBackgroundColor))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color.purple.opacity(0.2), lineWidth: 2)
+                            )
+                            .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
                         }
                         .buttonStyle(.plain)
                     }
                 }
                 .padding()
             }
+            .background(Color(.windowBackgroundColor).opacity(0.95))
         }
-        .frame(width: 400, height: 500)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .frame(width: 420, height: 520)
+        .background(Color(.windowBackgroundColor))
         .cornerRadius(20)
-        .shadow(radius: 10)
+        .shadow(color: .black.opacity(0.3), radius: 15, x: 0, y: 5)
         .sheet(isPresented: $showPrivateChat) {
             if let friend = selectedFriend {
                 PrivateChatView(
