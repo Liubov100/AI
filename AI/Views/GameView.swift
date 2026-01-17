@@ -126,6 +126,19 @@ struct GameView: View {
                 }
                 .padding()
 
+                // Player Event Notification Toast (placed below collected/stats UI)
+                if eventManager.showNotification, let event = eventManager.currentNotification {
+                    HStack {
+                        Spacer()
+                        PlayerNotificationToast(event: event)
+                            .frame(maxWidth: 260)
+                            .padding(.top, 8)
+                            .padding(.trailing, 20)
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(1500)
+                }
+
                 Spacer()
 
                 // Action Hints
@@ -233,21 +246,7 @@ struct GameView: View {
                 LevelUpView(newLevel: newLevel, isShowing: $showLevelUp)
             }
 
-            // Player Event Notification Toast (compact, anchored top-right)
-            if eventManager.showNotification, let event = eventManager.currentNotification {
-                VStack {
-                    HStack {
-                        Spacer()
-                        PlayerNotificationToast(event: event)
-                            .frame(maxWidth: 260)
-                            .padding(.top, 110) // place below top UI
-                            .padding(.trailing, 20)
-                    }
-                    Spacer()
-                }
-                .transition(.move(edge: .top).combined(with: .opacity))
-                .zIndex(1500)
-            }
+            
         }
         .onChange(of: gameState.playerStats.level) { oldValue, newValue in
             DispatchQueue.main.async {
