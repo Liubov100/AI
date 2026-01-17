@@ -26,49 +26,73 @@ struct SettingsView: View {
 
             // Settings panel
             VStack(spacing: 0) {
-                // Header
+                // Header with gradient
                 HStack {
+                    Image(systemName: "gearshape.fill")
+                        .font(.title2)
+                        .foregroundColor(.cyan)
                     Text("Settings")
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.primary)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
 
                     Spacer()
 
-                    Button(action: { isShowing = false }) {
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            isShowing = false
+                        }
+                    }) {
                         Image(systemName: "xmark.circle.fill")
                             .font(.title)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white.opacity(0.8))
                     }
                     .buttonStyle(.plain)
                 }
                 .padding()
-                .background(Color(nsColor: .windowBackgroundColor))
-
-                Divider()
+                .background(
+                    LinearGradient(
+                        colors: [Color.blue.opacity(0.8), Color.cyan.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
 
                 // Content
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 25) {
+                    VStack(alignment: .leading, spacing: 20) {
                         // Audio Settings
-                        SettingsSection(title: "Audio", icon: "speaker.wave.2.fill") {
-                            VStack(spacing: 15) {
+                        SettingsSection(title: "Audio", icon: "speaker.wave.2.fill", iconColor: .blue) {
+                            VStack(spacing: 14) {
                                 VolumeSlider(label: "Master Volume", value: $settings.masterVolume, icon: "speaker.3.fill")
                                 VolumeSlider(label: "Music", value: $settings.musicVolume, icon: "music.note")
                                 VolumeSlider(label: "Sound Effects", value: $settings.sfxVolume, icon: "waveform")
                             }
                         }
 
-                        Divider()
-
                         // Gameplay Settings
-                        SettingsSection(title: "Gameplay", icon: "gamecontroller.fill") {
-                            VStack(alignment: .leading, spacing: 15) {
-                                HStack {
+                        SettingsSection(title: "Gameplay", icon: "gamecontroller.fill", iconColor: .purple) {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "cat.fill")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(.orange)
+                                        .frame(width: 20)
                                     Text("Cat Name:")
-                                        .foregroundColor(.secondary)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.primary)
                                     TextField("Enter name", text: $settings.catName)
-                                        .textFieldStyle(.roundedBorder)
-                                        .frame(width: 200)
+                                        .textFieldStyle(.plain)
+                                        .font(.system(size: 15))
+                                        .padding(8)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .fill(Color(.controlBackgroundColor))
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8)
+                                                .stroke(Color.purple.opacity(0.3), lineWidth: 1)
+                                        )
+                                        .frame(width: 220)
                                         .onChange(of: settings.catName) { oldValue, newValue in
                                             DispatchQueue.main.async {
                                                 gameState.playerStats.catName = newValue
@@ -78,27 +102,27 @@ struct SettingsView: View {
                             }
                         }
 
-                        Divider()
-
                         // Graphics Settings
-                        SettingsSection(title: "Graphics", icon: "sparkles") {
-                            VStack(alignment: .leading, spacing: 15) {
+                        SettingsSection(title: "Graphics", icon: "sparkles", iconColor: .yellow) {
+                            VStack(alignment: .leading, spacing: 12) {
                                 Toggle(isOn: $settings.particleEffects) {
-                                    HStack {
+                                    HStack(spacing: 8) {
                                         Image(systemName: "sparkle")
+                                            .font(.system(size: 14))
                                             .foregroundColor(.yellow)
+                                            .frame(width: 20)
                                         Text("Particle Effects")
+                                            .font(.system(size: 15, weight: .medium))
                                     }
                                 }
                                 .toggleStyle(.switch)
+                                .tint(.yellow)
                             }
                         }
 
-                        Divider()
-
                         // Controls Info
-                        SettingsSection(title: "Controls", icon: "keyboard") {
-                            VStack(alignment: .leading, spacing: 10) {
+                        SettingsSection(title: "Controls", icon: "keyboard", iconColor: .green) {
+                            VStack(alignment: .leading, spacing: 8) {
                                 ControlRow(key: "WASD / Arrows", action: "Move cat")
                                 ControlRow(key: "Space", action: "Jump")
                                 ControlRow(key: "Shift + Move", action: "Run")
@@ -110,36 +134,52 @@ struct SettingsView: View {
                             }
                         }
 
-                        Divider()
-
                         // About
-                        SettingsSection(title: "About", icon: "info.circle") {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Little Kitty, Big City")
-                                    .font(.headline)
-                                Text("Recreation")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                        SettingsSection(title: "About", icon: "info.circle.fill", iconColor: .cyan) {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack(spacing: 10) {
+                                    Text("🐱")
+                                        .font(.system(size: 32))
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Little Kitty, Big City")
+                                            .font(.system(size: 17, weight: .bold))
+                                        Text("Recreation")
+                                            .font(.system(size: 13))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
 
-                                Text("Version 1.0")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .padding(.top, 4)
+                                Divider()
+                                    .padding(.vertical, 4)
 
-                                Text("Built with SwiftUI & Firebase")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                HStack {
+                                    Image(systemName: "number")
+                                        .foregroundColor(.cyan)
+                                        .frame(width: 20)
+                                    Text("Version 1.0")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.secondary)
+                                }
+
+                                HStack {
+                                    Image(systemName: "hammer.fill")
+                                        .foregroundColor(.cyan)
+                                        .frame(width: 20)
+                                    Text("Built with SwiftUI & Firebase")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(.secondary)
+                                }
                             }
                         }
                     }
-                    .padding(20)
+                    .padding(22)
                 }
-                .background(Color(nsColor: .controlBackgroundColor))
+                .background(Color(.windowBackgroundColor).opacity(0.95))
             }
-            .frame(width: 600, height: 700)
-            .background(Color(nsColor: .windowBackgroundColor))
-            .cornerRadius(16)
-            .shadow(radius: 20)
+            .frame(width: 640, height: 720)
+            .background(Color(.windowBackgroundColor))
+            .cornerRadius(20)
+            .shadow(color: .black.opacity(0.3), radius: 20, x: 0, y: 8)
         }
         .onAppear {
             loadSettings()
@@ -189,21 +229,46 @@ struct SettingsView: View {
 struct SettingsSection<Content: View>: View {
     let title: String
     let icon: String
+    let iconColor: Color
     @ViewBuilder let content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .foregroundColor(.accentColor)
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [iconColor.opacity(0.3), iconColor.opacity(0.1)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 32, height: 32)
+
+                    Image(systemName: icon)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(iconColor)
+                }
+
                 Text(title)
-                    .font(.title3)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.primary)
             }
 
             content
-                .padding(.leading, 28)
+                .padding(.leading, 42)
         }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color(.controlBackgroundColor))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(iconColor.opacity(0.2), lineWidth: 1.5)
+        )
+        .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 2)
     }
 }
 
@@ -214,25 +279,31 @@ struct VolumeSlider: View {
     let icon: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Image(systemName: icon)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 12))
+                    .foregroundColor(.blue)
                     .frame(width: 20)
                 Text(label)
-                    .font(.subheadline)
+                    .font(.system(size: 14, weight: .medium))
                 Spacer()
                 Text("\(Int(value * 100))%")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                    .foregroundColor(.blue)
                     .monospacedDigit()
-                    .frame(width: 40, alignment: .trailing)
+                    .frame(width: 45, alignment: .trailing)
             }
 
             Slider(value: $value, in: 0...1)
-                .controlSize(.small)
+                .tint(.blue)
+                .controlSize(.regular)
         }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color(.windowBackgroundColor).opacity(0.5))
+        )
     }
 }
 
