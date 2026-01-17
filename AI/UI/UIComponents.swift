@@ -13,11 +13,12 @@ struct StatsPanel: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+                HStack {
                 Image(systemName: "star.fill")
                     .foregroundColor(.yellow)
                 Text("\(gameState.inventory.shinies)")
                     .font(.headline)
+                    .appTextBackground()
             }
 
             HStack {
@@ -25,6 +26,7 @@ struct StatsPanel: View {
                     .foregroundColor(.green)
                 Text("\(gameState.inventory.feathers)")
                     .font(.headline)
+                    .appTextBackground()
             }
 
             HStack {
@@ -32,6 +34,7 @@ struct StatsPanel: View {
                     .foregroundColor(.blue)
                 Text("\(gameState.inventory.fish)")
                     .font(.headline)
+                    .appTextBackground()
             }
 
             HStack {
