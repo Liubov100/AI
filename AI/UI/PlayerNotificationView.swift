@@ -12,36 +12,37 @@ struct PlayerNotificationToast: View {
     let event: PlayerEvent
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             // Icon
             Image(systemName: event.icon)
-                .font(.title2)
+                .font(.caption)
                 .foregroundColor(event.color)
-                .frame(width: 40, height: 40)
-                .background(event.color.opacity(0.2))
+                .frame(width: 28, height: 28)
+                .background(event.color.opacity(0.18))
                 .clipShape(Circle())
 
             // Message
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(event.playerName)
-                    .font(.caption)
+                    .font(.caption2)
                     .bold()
                     .foregroundColor(.secondary)
 
                 Text(event.message)
-                    .font(.body)
+                    .font(.caption)
                     .foregroundColor(.primary)
             }
 
             Spacer()
         }
-        .padding()
+        .padding(8)
+        .frame(maxWidth: 260)
         .background(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 10)
                 .fill(Color(NSColor.controlBackgroundColor))
-                .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+                .shadow(color: .black.opacity(0.12), radius: 4, x: 0, y: 2)
         )
-        .padding(.horizontal)
+        .padding(.horizontal, 8)
     }
 }
 

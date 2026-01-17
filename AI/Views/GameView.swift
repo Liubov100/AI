@@ -233,11 +233,16 @@ struct GameView: View {
                 LevelUpView(newLevel: newLevel, isShowing: $showLevelUp)
             }
 
-            // Player Event Notification Toast
+            // Player Event Notification Toast (compact, anchored top-right)
             if eventManager.showNotification, let event = eventManager.currentNotification {
                 VStack {
-                    PlayerNotificationToast(event: event)
-                        .padding(.top, 100) // Lower position to avoid UI overlap
+                    HStack {
+                        Spacer()
+                        PlayerNotificationToast(event: event)
+                            .frame(maxWidth: 260)
+                            .padding(.top, 110) // place below top UI
+                            .padding(.trailing, 20)
+                    }
                     Spacer()
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
