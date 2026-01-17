@@ -71,7 +71,7 @@ struct ChatView: View {
 
                 Button(action: sendMessage) {
                     Image(systemName: "paperplane.fill")
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                         .padding(10)
                         .background(messageText.isEmpty ? Color.gray : Color.blue)
                         .cornerRadius(10)
@@ -82,7 +82,7 @@ struct ChatView: View {
             .background(Color.gray.opacity(0.1))
         }
         .frame(width: 400, height: 500)
-        .background(Color.white)
+        .background(Color(.windowBackgroundColor))
         .cornerRadius(20)
         .shadow(radius: 10)
         .onAppear {
@@ -140,18 +140,18 @@ struct ChatBubbleView: View {
                     Text(message.senderName)
                         .font(.caption)
                         .bold()
-                        .foregroundColor(isLocalPlayer ? .white : .blue)
+                        .foregroundColor(isLocalPlayer ? .black : .blue)
 
                     Text(message.timestamp, style: .time)
                         .font(.caption2)
-                        .foregroundColor(isLocalPlayer ? .white.opacity(0.7) : .gray)
+                        .foregroundColor(isLocalPlayer ? .black.opacity(0.7) : .gray)
                 }
 
                 Text(message.message)
                     .font(.body)
                     .padding(10)
-                    .background(isLocalPlayer ? Color.blue : Color.gray.opacity(0.2))
-                    .foregroundColor(isLocalPlayer ? .white : .primary)
+                    .background(isLocalPlayer ? Color.blue.opacity(0.8) : Color.gray.opacity(0.2))
+                    .foregroundColor(isLocalPlayer ? .black : .primary)
                     .cornerRadius(12)
             }
 
@@ -227,7 +227,7 @@ struct PrivateChatView: View {
 
                 Button(action: sendMessage) {
                     Image(systemName: "paperplane.fill")
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                         .padding(10)
                         .background(messageText.isEmpty ? Color.gray : Color.green)
                         .cornerRadius(10)
@@ -238,7 +238,7 @@ struct PrivateChatView: View {
             .background(Color.gray.opacity(0.1))
         }
         .frame(width: 400, height: 500)
-        .background(Color.white)
+        .background(Color(.windowBackgroundColor))
         .cornerRadius(20)
         .shadow(radius: 10)
         .onAppear {
@@ -335,14 +335,14 @@ struct FriendsListView: View {
                                     Text("\(chatManager.getUnreadCount(forFriend: player.id, localPlayerId: localPlayerId))")
                                         .font(.caption2)
                                         .bold()
-                                        .foregroundColor(.white)
+                                        .foregroundColor(.black)
                                         .padding(6)
                                         .background(Color.red)
                                         .clipShape(Circle())
                                 }
                             }
                             .padding()
-                            .background(Color.white)
+                            .background(Color(.windowBackgroundColor))
                             .cornerRadius(12)
                             .shadow(color: .black.opacity(0.1), radius: 3)
                         }
@@ -387,7 +387,7 @@ struct ChatButtonView: View {
                 Image(systemName: "bubble.left.and.bubble.right.fill")
                     .font(.title2)
                     .padding(10)
-                    .background(Color.white.opacity(0.8))
+                    .background(Color.black.opacity(0.2))
                     .cornerRadius(10)
 
                 let totalUnread = chatManager.unreadCount + chatManager.getTotalUnreadPrivateMessages()
@@ -395,7 +395,7 @@ struct ChatButtonView: View {
                     Text("\(totalUnread)")
                         .font(.caption2)
                         .bold()
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                         .padding(4)
                         .background(Color.red)
                         .clipShape(Circle())

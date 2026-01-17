@@ -8,6 +8,8 @@
 import SwiftUI
 import Combine
 
+// Tutorial disabled
+
 // MARK: - Tutorial Models
 struct TutorialStep: Identifiable, Codable {
     let id: String
@@ -39,8 +41,8 @@ struct TutorialStep: Identifiable, Codable {
 
 class TutorialManager: ObservableObject {
     static let shared = TutorialManager()
-    @Published var isActive = false
-    @Published var currentStepIndex = 0
+    @Published var isActive = false // disabled by default
+    @Published var currentStepIndex = 9999 // effectively disables steps
     @Published var completedSteps: Set<String> = []
     @Published var tutorialCompleted = false
 
@@ -111,13 +113,13 @@ class TutorialManager: ObservableObject {
     ]
 
     var currentStep: TutorialStep? {
-        guard currentStepIndex < steps.count else { return nil }
-        return steps[currentStepIndex]
+        return nil
     }
 
     func startTutorial() {
-        isActive = true
-        currentStepIndex = 0
+        isActive = false
+        tutorialCompleted = true
+        Task { try? await FirebaseService.shared.saveTutorialProgress(completed: true) }
     }
 
     func nextStep() {
@@ -157,91 +159,7 @@ class TutorialManager: ObservableObject {
 struct TutorialOverlayView: View {
     @ObservedObject var tutorial: TutorialManager
 
-    var body: some View {
-        ZStack {
-            // Dark overlay
-            Color.black.opacity(0.7)
-                .ignoresSafeArea()
-
-            // Tutorial message box
-            if let step = tutorial.currentStep {
-                VStack(spacing: 20) {
-                    // Title
-                    HStack {
-                        Image(systemName: "sparkles")
-                            .font(.title2)
-                            .foregroundColor(.yellow)
-                        Text(step.title)
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .appTextBackground()
-                        Spacer()
-                    }
-
-                    // Message
-                    Text(step.message)
-                        .font(.body)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .appTextBackground()
-
-                    // Action indicator
-                    HStack {
-                        actionIndicator(for: step.action)
-                        Spacer()
-                    }
-
-                    // Buttons
-                    HStack(spacing: 15) {
-                        if step.action == .tapToContinue || step.action == .completed {
-                            Button(action: {
-                                if step.action == .completed {
-                                    tutorial.completeTutorial()
-                                } else {
-                                    tutorial.nextStep()
-                                }
-                            }) {
-                                Text(step.action == .completed ? "Start Playing!" : "Continue")
-                                    .font(.headline)
-                                    .foregroundColor(.black)
-                                    .padding(.horizontal, 30)
-                                    .padding(.vertical, 12)
-                                    .background(Color.blue)
-                                    .cornerRadius(10)
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        Button(action: {
-                            tutorial.skipTutorial()
-                        }) {
-                            Text("Skip Tutorial")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 10)
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    // Progress indicator
-                    HStack(spacing: 8) {
-                        ForEach(0..<tutorial.steps.count, id: \.self) { index in
-                            Circle()
-                                .fill(index == tutorial.currentStepIndex ? Color.blue : Color.gray.opacity(0.3))
-                                .frame(width: 8, height: 8)
-                        }
-                    }
-                }
-                .padding(30)
-                .frame(maxWidth: 500)
-                .background(Color(nsColor: .windowBackgroundColor))
-                .cornerRadius(16)
-                .shadow(radius: 20)
-            }
-        }
-        .zIndex(2000)
-    }
+    var body: some View { EmptyView() }
 
     @ViewBuilder
     private func actionIndicator(for action: TutorialStep.TutorialAction) -> some View {
@@ -296,3 +214,4 @@ struct TutorialOverlayView: View {
 #Preview {
     TutorialOverlayView(tutorial: TutorialManager())
 }
+
