@@ -23,10 +23,12 @@ struct ChatView: View {
                 Text("Chat")
                     .font(.title2)
                     .bold()
+                    .appTextBackground()
                 Spacer()
                 Text("\(chatManager.messages.filter { $0.isAI }.count) AI Players Online")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .appTextBackground()
                 Button(action: { isShowing = false }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title2)

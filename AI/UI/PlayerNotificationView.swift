@@ -22,15 +22,17 @@ struct PlayerNotificationToast: View {
                 .clipShape(Circle())
 
             // Message
-            VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 2) {
                 Text(event.playerName)
                     .font(.caption2)
                     .bold()
                     .foregroundColor(.secondary)
+                    .appTextBackground()
 
                 Text(event.message)
                     .font(.caption)
                     .foregroundColor(.primary)
+                    .appTextBackground()
             }
 
             Spacer()

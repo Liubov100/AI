@@ -174,6 +174,7 @@ struct TutorialOverlayView: View {
                         Text(step.title)
                             .font(.title2)
                             .fontWeight(.bold)
+                            .appTextBackground()
                         Spacer()
                     }
 
@@ -182,6 +183,7 @@ struct TutorialOverlayView: View {
                         .font(.body)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .appTextBackground()
 
                     // Action indicator
                     HStack {
