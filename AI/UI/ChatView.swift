@@ -95,6 +95,16 @@ struct ChatView: View {
     private func sendMessage() {
         guard !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
+        let trimmed = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lower = trimmed.lowercased()
+
+        // Chat command: skip tutorial
+        if lower == "skip tut." || lower == "skip tut" || lower == "skip tutorial" {
+            // Mark tutorial completed and persist
+            TutorialManager.shared.skipTutorial()
+            LocalStorageService.shared.saveTutorialProgress(completed: true)
+        }
+
         chatManager.sendMessage(
             senderId: localPlayerId,
             senderName: localPlayerName,

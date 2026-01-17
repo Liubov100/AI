@@ -38,6 +38,7 @@ struct TutorialStep: Identifiable, Codable {
 }
 
 class TutorialManager: ObservableObject {
+    static let shared = TutorialManager()
     @Published var isActive = false
     @Published var currentStepIndex = 0
     @Published var completedSteps: Set<String> = []

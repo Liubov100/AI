@@ -16,7 +16,7 @@ struct GameView: View {
     @StateObject private var chatManager = ChatManager.shared
     @StateObject private var eventManager = PlayerEventManager.shared
     @StateObject private var firebaseService = FirebaseService.shared
-    @StateObject private var tutorialManager = TutorialManager()
+    @StateObject private var tutorialManager = TutorialManager.shared
 
     @State private var showQuestPanel = false
     @State private var showInventory = false
